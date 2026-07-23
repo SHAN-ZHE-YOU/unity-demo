@@ -286,10 +286,6 @@ const QuestionCard = ({ onComplete }) => {
       {/* Question Card */}
       <div className={`bg-white rounded-xl shadow-sm font-sans transition-opacity duration-300 overflow-hidden ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <div className="p-5 sm:p-8">
-        <div className="text-xs font-semibold text-slate-400 mb-2 tracking-wider">
-          {currentQ.prefix} / {questionBank.length}
-        </div>
-
           <div className="text-xs font-semibold text-slate-500 mb-2 tracking-wider uppercase">
             {currentQ.prefix} / {questionBank.length}
           </div>
