@@ -33,6 +33,11 @@ const HomePage = ({ onStartSurvey }) => {
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden animate-fade-in-down">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 sm:px-8 py-8 sm:py-10 text-center">
+          <img
+            src="/logo.svg"
+            alt="優樂地永續健檢 Logo"
+            className="mx-auto mb-4 h-14 w-14 sm:h-16 sm:w-16"
+          />
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">優樂地永續健檢</h1>
           <p className="text-slate-300 text-sm sm:text-base">請填寫基本資料以開始進行永續供應鏈快速健檢</p>
         </div>
