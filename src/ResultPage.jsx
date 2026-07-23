@@ -39,7 +39,7 @@ const ResultPage = ({ axisScores }) => {
     riskColor = "text-green-600 bg-green-50 border-green-200";
     // 六面向平均皆 >= 80，不特別點名最低分面向
     const displayAxis = minScore >= 80 ? "各面向" : `「${lowestAxes}」`;
-    suggestionText = `貴公司於${displayAxis}表現已達一定基礎，建議持續維持現有管理機制，並可進一步了解完整版供應鏈ESG管理平台，強化制度化與可查核性。`;
+    suggestionText = `貴公司於${displayAxis}表現已達一定基礎，建議持續維持現有管理機制，並可進一步了解完整版ESG管理平台，強化制度化與可查核性。`;
   } else if (totalScore >= 60) {
     riskLabel = "中風險";
     riskColor = "text-yellow-600 bg-yellow-50 border-yellow-200";
@@ -131,7 +131,7 @@ const ResultPage = ({ axisScores }) => {
 
           {/* CTA 按鈕 */}
           <button className="w-full bg-gradient-to-r from-slate-800 to-slate-700 text-white font-bold py-3.5 sm:py-4 rounded-lg shadow-md hover:shadow-lg hover:from-slate-700 hover:to-slate-600 transition-all active:scale-95 touch-manipulation text-base">
-            預約完整版永續供應鏈健檢
+            預約完整版永續健檢
           </button>
         </div>
       </div>
