@@ -9,23 +9,14 @@ import {
   Legend,
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
+import { AXIS_NAMES, normalizeAxisScores } from './esgScoring';
 
 // 註冊 Chart.js 元件
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 const ResultPage = ({ axisScores }) => {
-  // 1. 定義六軸名稱 (依據規格書)
-  const axisNames = [
-    "公司治理與誠信", 
-    "資安與供應鏈管理", 
-    "勞動人權", 
-    "職場友善與員工關懷", 
-    "資源使用管理", 
-    "氣候與法規遵循"
-  ];
-
-  // 確保分數陣列長度正確 (若尚無完整資料，先以測試分數代入)
-  const scores = axisScores?.length === 6 ? axisScores : [85, 45, 60, 75, 90, 50];
+  const axisNames = AXIS_NAMES;
+  const scores = normalizeAxisScores(axisScores);
 
   // 2. 計算總分與找出最低分面向
   const totalScore = Math.round(scores.reduce((a, b) => a + b, 0) / 6);
@@ -80,6 +71,9 @@ const ResultPage = ({ axisScores }) => {
   const options = {
     scales: {
       r: {
+        min: 0,
+        max: 100,
+        beginAtZero: true,
         angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
         grid: { color: 'rgba(0, 0, 0, 0.1)' },
         pointLabels: {
@@ -87,8 +81,6 @@ const ResultPage = ({ axisScores }) => {
           color: '#475569'
         },
         ticks: {
-          min: 0,
-          max: 100,
           stepSize: 20,
           display: false // 隱藏軸線上的數字，保持畫面乾淨
         }
@@ -105,7 +97,7 @@ const ResultPage = ({ axisScores }) => {
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 sm:px-8 py-8 sm:py-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-6">ESG 永續供應鏈初步健檢結果</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-6">永續健檢初步結果</h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
             <div className="text-center">
               <span className="text-slate-300 text-sm block mb-1">整體總分</span>

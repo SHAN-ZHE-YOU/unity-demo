@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { questionBank } from './questions';
+import { buildAxisScores } from './esgScoring';
 
 const QuestionCard = ({ onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -117,10 +118,6 @@ const QuestionCard = ({ onComplete }) => {
     saveCurrentStateToAnswers(currentIndex);
   };
 
-  // --- 計分與防呆邏輯 ---
-  const currentState = { check1, check2, subValue, seqLevel, safeChecked, violationChecked, violationSub, multiChecked, isNone };
-  const score = currentQ.calculateScore ? currentQ.calculateScore(currentState) : 0;
-
   let isNextDisabled = true;
   if (currentQ.type === 'parallel') {
     isNextDisabled = !check1 && !check2 && !isNone;
@@ -137,25 +134,15 @@ const QuestionCard = ({ onComplete }) => {
     setIsTransitioning(true);
     setTimeout(() => {
       const payload = saveCurrentStateToAnswers(currentIndex);
+      const nextAnswers = [...answers];
+      nextAnswers[currentIndex] = payload;
 
       if (currentIndex < questionBank.length - 1) {
         const next = currentIndex + 1;
         setCurrentIndex(next);
         loadAnswersToLocal(next);
       } else {
-        const allAnswers = answers.slice();
-        allAnswers[currentIndex] = payload;
-        const scores = allAnswers.map((a, idx) => {
-          const s = questionBank[idx].calculateScore ? questionBank[idx].calculateScore(a || {}) : 0;
-          return typeof s === 'number' ? s : 0;
-        });
-        // 轉為 6 軸，保留原本 mapping 邏輯（若需要可擴充）
-        const axisDefaults = [60,60,60,60,60,60];
-        const g1 = scores[0];
-        const g2 = scores[1];
-        const axisScores = [...axisDefaults];
-        if (typeof g2 === 'number') axisScores[0] = Math.round(g2);
-        if (typeof g1 === 'number') axisScores[1] = Math.round(g1);
+        const axisScores = buildAxisScores(nextAnswers, questionBank);
         if (typeof onComplete === 'function') onComplete(axisScores);
       }
       setIsTransitioning(false);
@@ -402,18 +389,15 @@ const QuestionCard = ({ onComplete }) => {
             </button>
           </div>
 
-          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="text-sm font-medium text-slate-500">目前預估得分: <span className="text-slate-700 text-lg font-bold ml-2">{score}</span></div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {ENABLE_TEST_FILL && (
-                <button onClick={randomFillCurrent} className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-medium transition-all touch-manipulation">隨機填答全部</button>
-              )}
-              <button onClick={handleNextQuestion} disabled={isNextDisabled} className={`flex-1 sm:flex-none px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-bold text-sm sm:text-base transition-all touch-manipulation ${
-                isNextDisabled ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-md active:scale-95'
-              }`}>
-                {currentIndex === questionBank.length - 1 ? '看結果' : '下一題'}
-              </button>
-            </div>
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
+            {ENABLE_TEST_FILL && (
+              <button onClick={randomFillCurrent} className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-medium transition-all touch-manipulation">隨機填答全部</button>
+            )}
+            <button onClick={handleNextQuestion} disabled={isNextDisabled} className={`flex-1 sm:flex-none px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-bold text-sm sm:text-base transition-all touch-manipulation ${
+              isNextDisabled ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-md active:scale-95'
+            }`}>
+              {currentIndex === questionBank.length - 1 ? '看結果' : '下一題'}
+            </button>
           </div>
         </div>
       </div>

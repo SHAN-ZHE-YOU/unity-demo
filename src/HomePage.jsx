@@ -7,7 +7,6 @@ const HomePage = ({ onStartSurvey }) => {
     title: '',
     email: '',
     phone: '',
-    industry: '',
     consent: false
   });
 
@@ -27,7 +26,7 @@ const HomePage = ({ onStartSurvey }) => {
 
   // 驗證必填欄位是否皆已填寫[cite: 1]
   const isFormValid = formData.companyName && formData.contactName && 
-                      formData.email && formData.industry && formData.consent;
+                      formData.email && formData.consent;
 
   return (
     <div className="w-full max-w-md mx-auto px-4 sm:px-0">
@@ -69,21 +68,6 @@ const HomePage = ({ onStartSurvey }) => {
             <label className="block text-sm font-semibold text-slate-700 mb-2">聯絡電話</label>
             <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
               className="w-full px-4 py-3 sm:py-3.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none transition-all text-base" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">產業別 <span className="text-red-500">*</span></label>
-            <select name="industry" required value={formData.industry} onChange={handleChange}
-              className="w-full px-4 py-3 sm:py-3.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white transition-all text-base appearance-none">
-              <option value="" disabled>請選擇產業別</option>
-              <option value="製造">製造</option>
-              <option value="工程設備">工程設備</option>
-              <option value="印刷">印刷</option>
-              <option value="保全服務">保全服務</option>
-              <option value="醫療機構">醫療機構</option>
-              <option value="旅遊服務">旅遊服務</option>
-              <option value="其他">其他</option>
-            </select>
           </div>
 
           <div className="pt-2">

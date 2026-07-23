@@ -308,7 +308,7 @@ export const questionBank = [
     title: "貴公司目前是否使用數位化工具或 AI 技術輔助 ESG 管理？",
     steps: [
       { level: 1, label: "已開始規劃或評估" },
-      { level: 2, label: "系統正在導入中" },
+      { level: 2, label: "曾導入系統" },
       { level: 3, label: "已經正式使用" }
     ],
     noneLabel: "尚未規劃 / 不清楚",
