@@ -122,7 +122,7 @@ const ResultPage = ({ surveyResult, leadData }) => {
                   起步 / 建置中 / 已成形 / 成熟
                 </div> */}
               </div>
-              <div className="relative h-[100px] w-full sm:h-[360px]">
+              <div className="relative h-[280px] w-full sm:h-[360px]">
                 <Radar data={data} options={options} />
               </div>
             </div>

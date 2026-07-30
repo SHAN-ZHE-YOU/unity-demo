@@ -483,7 +483,7 @@ const QuestionCard = ({ onComplete, onSaveNow }) => {
                 onClick={randomFillCurrent}
                 className="mt-3 w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-200 sm:mt-0 sm:ml-3 sm:w-auto"
               >
-                隨機填答全部
+                暫時隨機填答剩餘題目
               </button>
             )}
 
