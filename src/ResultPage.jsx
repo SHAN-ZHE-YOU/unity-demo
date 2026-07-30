@@ -185,7 +185,8 @@ const ResultPage = ({ surveyResult, leadData }) => {
                       <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">{item.code}</p>
                       <h4 className="mt-1 text-base font-bold text-slate-900">{item.title}</h4>
                     </div>
-                    <span className={`rounded-full border px-3 py-1 text-sm font-bold ${lampToneClass[item.lamp] || lampToneClass.灰燈}`}>
+                    <span className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-sm font-bold ${lampToneClass[item.lamp] || lampToneClass.灰燈}`}>
+
                       {item.lamp}
                     </span>
                   </div>

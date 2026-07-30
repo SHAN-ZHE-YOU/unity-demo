@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { questionBank, visibleQuestionBank } from './questions';
 import { buildReportSummary } from './esgScoring';
 
@@ -59,7 +59,7 @@ const getLeafNode = (question, answer) => {
   return lastNodeId ? nodeMap.get(lastNodeId) || null : null;
 };
 
-const QuestionCard = ({ onComplete, onProgressChange, onSaveNow, saveStatus }) => {
+const QuestionCard = ({ onComplete, onSaveNow }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -127,13 +127,33 @@ const QuestionCard = ({ onComplete, onProgressChange, onSaveNow, saveStatus }) =
     setShowHint(false);
   }, [currentIndex]);
 
-  // 每次答案或目前題目索引變動時，把最新進度回報給父層（App）
-  // 由父層負責每分鐘自動儲存 / 手動儲存到 GAS 後端
+  // 是否有「上次儲存之後」尚未存檔的變更；剛進問卷時預設為 false（還沒有東西好存）
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isFirstAnswersRenderRef = useRef(true);
+
+  // 只要答案有變動，就把「儲存進度」按鈕重新標記為尚未儲存
+  // 用 ref 跳過第一次 render（元件剛掛載時的初始空答案不算是「變更」）
   useEffect(() => {
-    if (typeof onProgressChange === 'function') {
-      onProgressChange(currentIndex, answersByCode);
+    if (isFirstAnswersRenderRef.current) {
+      isFirstAnswersRenderRef.current = false;
+      return;
     }
-  }, [currentIndex, answersByCode, onProgressChange]);
+    setHasUnsavedChanges(true);
+  }, [answersByCode]);
+
+  // 「儲存進度」按鈕點擊時觸發：把當下最新的題目索引與作答內容直接傳給父層
+  const handleSaveClick = async () => {
+    if (typeof onSaveNow !== 'function' || isSaving) return;
+
+    setIsSaving(true);
+    const success = await onSaveNow(currentIndex, answersByCode);
+    setIsSaving(false);
+
+    if (success) {
+      setHasUnsavedChanges(false);
+    }
+  };
 
   useEffect(() => {
     const activeButton = document.querySelector(`[data-question-nav="${currentIndex}"]`);
@@ -250,7 +270,7 @@ const QuestionCard = ({ onComplete, onProgressChange, onSaveNow, saveStatus }) =
 
       const reportSummary = buildReportSummary(answersByCode, questionBank);
       if (typeof onComplete === 'function') {
-        onComplete(reportSummary);
+        onComplete(reportSummary, answersByCode, currentIndex);
       }
       setIsTransitioning(false);
     }, 220);
@@ -470,21 +490,18 @@ const QuestionCard = ({ onComplete, onProgressChange, onSaveNow, saveStatus }) =
             {typeof onSaveNow === 'function' && (
               <button
                 type="button"
-                onClick={onSaveNow}
-                className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 sm:mt-0 sm:ml-3 sm:w-auto"
+                onClick={handleSaveClick}
+                disabled={isSaving}
+                className={`mt-3 w-full rounded-xl border px-5 py-3 text-sm font-semibold transition-all sm:mt-0 sm:ml-3 sm:w-auto ${
+                  isSaving
+                    ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                    : hasUnsavedChanges
+                      ? 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                }`}
               >
-                手動儲存進度
+                {isSaving ? '儲存中...' : hasUnsavedChanges ? '儲存進度' : '已儲存'}
               </button>
-            )}
-
-            {saveStatus && saveStatus !== 'idle' && (
-              <span className={`mt-3 block text-xs font-medium sm:mt-0 sm:ml-3 sm:inline-block ${
-                saveStatus === 'error' ? 'text-red-500' : saveStatus === 'saving' ? 'text-slate-400' : 'text-emerald-600'
-              }`}>
-                {saveStatus === 'saving' && '儲存中...'}
-                {saveStatus === 'saved' && '✅ 已儲存進度'}
-                {saveStatus === 'error' && '⚠️ 儲存失敗，將於下次自動重試'}
-              </span>
             )}
           </div>
         </div>
