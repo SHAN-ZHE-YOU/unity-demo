@@ -122,15 +122,6 @@ const ResultPage = ({ surveyResult, leadData }) => {
         <div className="space-y-8 p-6 sm:p-8">
           <div className="grid gap-6">
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  {/* <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">四軸雷達圖</p> */}
-                  {/* <p className="text-sm text-slate-600">依等級位置繪製，僅保留四段刻度。</p> */}
-                </div>
-                {/* <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 sm:block">
-                  起步 / 建置中 / 已成形 / 成熟
-                </div> */}
-              </div>
               {/* <div className="relative h-[280px] w-full sm:h-[360px]"> */}
               <div className="relative mx-auto h-[260px] w-full max-w-[280px] sm:h-[360px] sm:max-w-none">
                 <Radar data={data} options={options} />
