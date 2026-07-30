@@ -132,7 +132,7 @@ const ResultPage = ({ surveyResult, leadData }) => {
                 </div> */}
               </div>
               {/* <div className="relative h-[280px] w-full sm:h-[360px]"> */}
-              <div className="relative mx-auto h-[260px] w-full max-w-[280px] sm:h-[360px] sm:max-w-none"></div>
+              <div className="relative mx-auto h-[260px] w-full max-w-[280px] sm:h-[360px] sm:max-w-none">
                 <Radar data={data} options={options} />
               </div>
             </div>
