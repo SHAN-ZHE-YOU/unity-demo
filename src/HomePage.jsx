@@ -149,11 +149,11 @@ const HomePage = ({ onStartSurvey }) => {
           </div>
 
           {/* 淺淺的防呆狀態提示：當按鈕不能按時，提示使用者還差什麼 */}
-          {!isFormValid && (
+          {/* {!isFormValid && (
             <p className="text-xs text-slate-400 text-center pt-1">
               請完整填寫帶有 <span className="text-red-400">*</span> 的必填欄位並勾選同意條款
             </p>
-          )}
+          )} */}
 
           <button 
             type="submit" 
