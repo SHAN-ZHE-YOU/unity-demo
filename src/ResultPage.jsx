@@ -62,6 +62,15 @@ const ResultPage = ({ surveyResult, leadData }) => {
   };
 
   const options = {
+    // 新增：增加圖表四周的 padding，避免手機版左右標籤被卡片切掉
+    layout: {
+      padding: {
+        top: 10,
+        bottom: 10,
+        left: 25,
+        right: 25,
+      },
+    },
     scales: {
       r: {
         min: 0,
