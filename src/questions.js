@@ -72,8 +72,68 @@ const createSignalQuestion = ({
 });
 
 export const questionBank = [
-  createTreeQuestion({
+  createSignalQuestion({
     order: 1,
+    code: 'B1',
+    title: '貴公司近一年是否曾收到外部單位要求提供 ESG 或碳排相關資料？',
+    plainExplanation: '這題屬於內部商機判讀用途，用來判斷外部客戶或單位是否開始要求 ESG 相關資料。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B1-1', null, 0, '是', 0, false),
+      createNode('B1-1-1', 'B1-1', 1, '來自品牌客戶或下游客戶', 3, true),
+      createNode('B1-1-2', 'B1-1', 1, '來自往來銀行或金融機構', 3, true),
+      createNode('B1-1-3', 'B1-1', 1, '來自主管機關或公協會', 2, true),
+      createNode('B1-2', null, 0, '尚未收到', 0, true),
+    ],
+    multiSelectLimit: 3,
+  }),
+  createSignalQuestion({
+    order: 2,
+    code: 'B2',
+    title: '貴公司主要客戶是否包含上市櫃公司、外商或國際品牌？',
+    plainExplanation: '這題屬於內部商機判讀用途，用來理解客戶組成是否可能帶來 ESG 要求。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B2-1', null, 0, '是', 0, false),
+      createNode('B2-1-1', 'B2-1', 1, '占營收比重過半', 3, true),
+      createNode('B2-1-2', 'B2-1', 1, '占比未過半', 2, true),
+      createNode('B2-2', null, 0, '否', 0, true),
+      createNode('B2-3', null, 0, '不清楚', 0, true),
+    ],
+    multiSelectLimit: 1,
+  }),
+  createSignalQuestion({
+    order: 3,
+    code: 'B3',
+    title: '未來一年貴公司最想優先處理的 ESG 議題？（至多選兩項）',
+    plainExplanation: '這題屬於內部商機判讀用途，用來了解公司最想先做的 ESG 工作方向。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B3-1', null, 0, '溫室氣體盤查與查證', 2, true),
+      createNode('B3-2', null, 0, '永續報告書撰寫', 2, true),
+      createNode('B3-3', null, 0, '回應客戶供應鏈問卷', 2, true),
+      createNode('B3-4', null, 0, 'ESG 策略與目標設定', 2, true),
+      createNode('B3-5', null, 0, '數位工具或系統導入', 2, true),
+      createNode('B3-6', null, 0, '尚未確定', 0, true),
+    ],
+    multiSelectLimit: 2,
+  }),
+  createSignalQuestion({
+    order: 4,
+    code: 'B4',
+    title: '貴公司推動 ESG 目前最大的困難為何？',
+    plainExplanation: '這題屬於內部商機判讀用途，用來判斷公司目前推動 ESG 的阻礙。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B4-1', null, 0, '已有規劃，尚待執行資源到位', 3, true),
+      createNode('B4-2', null, 0, '缺乏內部人力', 2, true),
+      createNode('B4-3', null, 0, '不知從何開始', 1, true),
+      createNode('B4-4', null, 0, '尚無預算', 0, true),
+    ],
+    multiSelectLimit: 1,
+  }),
+  createTreeQuestion({
+    order: 5,
     code: 'G1',
     axisIndex: 0,
     weight: 1,
@@ -90,7 +150,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 2,
+    order: 6,
     code: 'G2',
     axisIndex: 0,
     weight: 1.5,
@@ -105,7 +165,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 3,
+    order: 7,
     code: 'G3',
     axisIndex: 0,
     weight: 1,
@@ -120,7 +180,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 4,
+    order: 8,
     code: 'G5',
     axisIndex: 0,
     weight: 1.5,
@@ -136,7 +196,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 5,
+    order: 9,
     code: 'S3',
     axisIndex: 1,
     weight: 1.5,
@@ -152,7 +212,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 6,
+    order: 10,
     code: 'S4',
     axisIndex: 1,
     weight: 1.5,
@@ -168,7 +228,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 7,
+    order: 11,
     code: 'S6',
     axisIndex: 1,
     weight: 1,
@@ -183,7 +243,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 8,
+    order: 12,
     code: 'S7',
     axisIndex: 1,
     weight: 1,
@@ -198,7 +258,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 9,
+    order: 13,
     code: 'E2',
     axisIndex: 2,
     weight: 1,
@@ -214,7 +274,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 10,
+    order: 14,
     code: 'E4',
     axisIndex: 2,
     weight: 1.5,
@@ -230,7 +290,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 11,
+    order: 15,
     code: 'E7',
     axisIndex: 2,
     weight: 1,
@@ -246,7 +306,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 12,
+    order: 16,
     code: 'E1',
     axisIndex: 3,
     weight: 1.5,
@@ -262,7 +322,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 13,
+    order: 17,
     code: 'E6',
     axisIndex: 3,
     weight: 1.5,
@@ -278,7 +338,7 @@ export const questionBank = [
     ],
   }),
   createTreeQuestion({
-    order: 14,
+    order: 18,
     code: 'E3',
     axisIndex: 3,
     weight: 1,
@@ -294,7 +354,7 @@ export const questionBank = [
     ],
   }),
   createComplianceQuestion({
-    order: 15,
+    order: 19,
     code: 'G4',
     title: '貴公司近三年是否曾因反競爭行為、壟斷或不公平競爭受到裁罰或訴訟？',
     plainExplanation: '這題只是在確認公司近三年是否有相關裁罰或訴訟紀錄，不影響雷達分數。',
@@ -308,7 +368,7 @@ export const questionBank = [
     ],
   }),
   createComplianceQuestion({
-    order: 16,
+    order: 20,
     code: 'S1',
     title: '貴公司近三年是否曾違反《勞動基準法》且遭裁罰？',
     plainExplanation: '這題只是在確認勞基法裁罰紀錄，不影響雷達分數。',
@@ -322,7 +382,7 @@ export const questionBank = [
     ],
   }),
   createComplianceQuestion({
-    order: 17,
+    order: 21,
     code: 'S2',
     title: '貴公司近三年在性別平等與反歧視方面，是否曾有經證實之違法或歧視事件？',
     plainExplanation: '這題只是在確認是否有經證實的違法或歧視事件，不影響雷達分數。',
@@ -336,7 +396,7 @@ export const questionBank = [
     ],
   }),
   createComplianceQuestion({
-    order: 18,
+    order: 22,
     code: 'S5',
     title: '貴公司去年度是否曾因強迫勞動、工時或薪資等勞動法規違反而受主管機關裁罰？',
     plainExplanation: '這題只是在確認去年度是否有勞動法規裁罰紀錄，不影響雷達分數。',
@@ -350,7 +410,7 @@ export const questionBank = [
     ],
   }),
   createComplianceQuestion({
-    order: 19,
+    order: 23,
     code: 'E5',
     title: '貴公司近三年是否曾違反環境相關法規（水污染、空污、廢棄物、土壤地下水、噪音、毒化物管理等）？',
     plainExplanation: '這題只是在確認環境法規裁罰紀錄，不影響雷達分數。',
@@ -362,66 +422,6 @@ export const questionBank = [
       createNode('E5-2-2', 'E5-2', 1, '尚未結案或改善', '紅燈', true, { lamp: '紅燈' }),
       createNode('E5-3', null, 0, '不清楚', '灰燈', true, { lamp: '灰燈' }),
     ],
-  }),
-  createSignalQuestion({
-    order: 20,
-    code: 'B1',
-    title: '貴公司近一年是否曾收到外部單位要求提供 ESG 或碳排相關資料？',
-    plainExplanation: '這題屬於內部商機判讀用途，用來判斷外部客戶或單位是否開始要求 ESG 相關資料。',
-    riskType: '商機訊號、內部判讀',
-    nodes: [
-      createNode('B1-1', null, 0, '是', 0, false),
-      createNode('B1-1-1', 'B1-1', 1, '來自品牌客戶或下游客戶', 3, true),
-      createNode('B1-1-2', 'B1-1', 1, '來自往來銀行或金融機構', 3, true),
-      createNode('B1-1-3', 'B1-1', 1, '來自主管機關或公協會', 2, true),
-      createNode('B1-2', null, 0, '尚未收到', 0, true),
-    ],
-    multiSelectLimit: 3,
-  }),
-  createSignalQuestion({
-    order: 21,
-    code: 'B2',
-    title: '貴公司主要客戶是否包含上市櫃公司、外商或國際品牌？',
-    plainExplanation: '這題屬於內部商機判讀用途，用來理解客戶組成是否可能帶來 ESG 要求。',
-    riskType: '商機訊號、內部判讀',
-    nodes: [
-      createNode('B2-1', null, 0, '是', 0, false),
-      createNode('B2-1-1', 'B2-1', 1, '占營收比重過半', 3, true),
-      createNode('B2-1-2', 'B2-1', 1, '占比未過半', 2, true),
-      createNode('B2-2', null, 0, '否', 0, true),
-      createNode('B2-3', null, 0, '不清楚', 0, true),
-    ],
-    multiSelectLimit: 1,
-  }),
-  createSignalQuestion({
-    order: 22,
-    code: 'B3',
-    title: '未來一年貴公司最想優先處理的 ESG 議題？（至多選兩項）',
-    plainExplanation: '這題屬於內部商機判讀用途，用來了解公司最想先做的 ESG 工作方向。',
-    riskType: '商機訊號、內部判讀',
-    nodes: [
-      createNode('B3-1', null, 0, '溫室氣體盤查與查證', 2, true),
-      createNode('B3-2', null, 0, '永續報告書撰寫', 2, true),
-      createNode('B3-3', null, 0, '回應客戶供應鏈問卷', 2, true),
-      createNode('B3-4', null, 0, 'ESG 策略與目標設定', 2, true),
-      createNode('B3-5', null, 0, '數位工具或系統導入', 2, true),
-      createNode('B3-6', null, 0, '尚未確定', 0, true),
-    ],
-    multiSelectLimit: 2,
-  }),
-  createSignalQuestion({
-    order: 23,
-    code: 'B4',
-    title: '貴公司推動 ESG 目前最大的困難為何？',
-    plainExplanation: '這題屬於內部商機判讀用途，用來判斷公司目前推動 ESG 的阻礙。',
-    riskType: '商機訊號、內部判讀',
-    nodes: [
-      createNode('B4-1', null, 0, '已有規劃，尚待執行資源到位', 3, true),
-      createNode('B4-2', null, 0, '缺乏內部人力', 2, true),
-      createNode('B4-3', null, 0, '不知從何開始', 1, true),
-      createNode('B4-4', null, 0, '尚無預算', 0, true),
-    ],
-    multiSelectLimit: 1,
   }),
 ];
 
