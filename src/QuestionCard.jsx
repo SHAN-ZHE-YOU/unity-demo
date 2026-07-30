@@ -1,407 +1,443 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { questionBank } from './questions';
-import { buildAxisScores } from './esgScoring';
+import React, { useEffect, useMemo, useState } from 'react';
+import { questionBank, visibleQuestionBank } from './questions';
+import { buildReportSummary } from './esgScoring';
+
+const createEmptyAnswer = (question) => {
+  if (question.kind === 'signal') {
+    // 修改：確保 signal 題型同時有 path 與 selectedIds
+    return { path: [], selectedIds: [] };
+  }
+  return { path: [] };
+};
+
+const buildTreeIndex = (nodes = []) => {
+  const nodeMap = new Map();
+  const childrenMap = new Map();
+
+  nodes.forEach((node) => {
+    nodeMap.set(node.id, node);
+    const parentKey = node.parentId ?? '__root__';
+    const bucket = childrenMap.get(parentKey) || [];
+    bucket.push(node);
+    childrenMap.set(parentKey, bucket);
+  });
+
+  return {
+    nodeMap,
+    childrenMap,
+    rootNodes: childrenMap.get('__root__') || [],
+  };
+};
+
+const buildPathToNode = (node, nodeMap) => {
+  if (!node) return [];
+
+  const path = [];
+  let currentNode = node;
+
+  while (currentNode) {
+    path.unshift(currentNode.id);
+    currentNode = currentNode.parentId ? nodeMap.get(currentNode.parentId) : null;
+  }
+
+  return path;
+};
+
+const collectTerminalPaths = (question) => {
+  const { nodeMap, rootNodes } = buildTreeIndex(question.nodes);
+  const terminalNodes = question.nodes.filter((node) => node.isTerminal);
+
+  return terminalNodes
+    .map((node) => buildPathToNode(node, nodeMap))
+    .filter((path) => path.length > 0 && rootNodes.some((rootNode) => rootNode.id === path[0]));
+};
+
+const getLeafNode = (question, answer) => {
+  const nodeMap = new Map((question.nodes || []).map((node) => [node.id, node]));
+  const path = Array.isArray(answer?.path) ? answer.path : [];
+  const lastNodeId = path[path.length - 1];
+  return lastNodeId ? nodeMap.get(lastNodeId) || null : null;
+};
 
 const QuestionCard = ({ onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const navRef = useRef(null);
+  const [showHint, setShowHint] = useState(false);
+  
+  // 用來記錄哪一個節點目前正在觸發「晃動」動畫的 state
+	// 修改為記錄被晃掉的節點 ID 陣列：
+	const [shakingNodeIds, setShakingNodeIds] = useState([]);
 
-  const currentQ = questionBank[currentIndex];
+  const [answersByCode, setAnswersByCode] = useState(() => {
+    return questionBank.reduce((accumulator, question) => {
+      accumulator[question.code] = createEmptyAnswer(question);
+      return accumulator;
+    }, {});
+  });
 
-  // 測試開關（可改為 import.meta.env.VITE_ENABLE_TEST_FILL 在正式環境關閉）
+  const currentQuestion = visibleQuestionBank[currentIndex];
+  const currentAnswer = answersByCode[currentQuestion?.code] || createEmptyAnswer(currentQuestion || { kind: 'score' });
+
   const ENABLE_TEST_FILL = true;
 
-  // 共用狀態
-  const [isNone, setIsNone] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
+  // 👇 1. 新增開發模式分數顯示開關（上線後改為 false）
+  const ENABLE_DEBUG_SCORE = flase; 
 
-  // 1. Parallel 狀態
-  const [check1, setCheck1] = useState(false);
-  const [check2, setCheck2] = useState(false);
-  const [subValue, setSubValue] = useState(null);
+  const treeIndex = useMemo(() => buildTreeIndex(currentQuestion?.nodes || []), [currentQuestion]);
+  const selectedPath = Array.isArray(currentAnswer.path) ? currentAnswer.path : [];
+  const selectedLeafNode = getLeafNode(currentQuestion, currentAnswer);
+  const canAdvance = currentQuestion?.kind === 'signal' 
+    ? Array.isArray(currentAnswer.selectedIds) && currentAnswer.selectedIds.length > 0
+    : selectedPath.length > 0;
 
-  // 2. Sequential 狀態
-  const [seqLevel, setSeqLevel] = useState(0);
+  // 👇 2. 計算本題得分與累計總分 (僅在計分題型累加)
+  let currentQuestionScore = 0;
+  let cumulativeScore = 0;
+  let maxTotalScore = 0;
 
-  // 3. Violation 狀態
-  const [safeChecked, setSafeChecked] = useState(false);
-  const [violationChecked, setViolationChecked] = useState(false);
-  const [violationSub, setViolationSub] = useState(null);
+  if (ENABLE_DEBUG_SCORE) {
+    currentQuestionScore = selectedLeafNode?.score || 0;
 
-  // 4. Multiple 狀態
-  const [multiChecked, setMultiChecked] = useState({});
-
-  // 儲存每題答案以便保留填寫紀錄
-  const [answers, setAnswers] = useState(() => questionBank.map(() => ({})));
-
-  const applyAnswerToLocal = (answer = {}) => {
-    setCheck1(!!answer.check1);
-    setCheck2(!!answer.check2);
-    setSubValue(answer.subValue ?? null);
-    setSeqLevel(answer.seqLevel ?? 0);
-    setSafeChecked(!!answer.safeChecked);
-    setViolationChecked(!!answer.violationChecked);
-    setViolationSub(answer.violationSub ?? null);
-    setMultiChecked(answer.multiChecked ?? {});
-    setIsNone(!!answer.isNone);
-  };
-
-  // 狀態重置（僅清本題暫存）
-  const resetAllStates = () => {
-    setCheck1(false); setCheck2(false); setSubValue(null);
-    setSeqLevel(0);
-    setSafeChecked(false); setViolationChecked(false); setViolationSub(null);
-    setMultiChecked({});
-    setIsNone(false);
-  };
-
-  const saveCurrentStateToAnswers = (index) => {
-    const payload = { check1, check2, subValue, seqLevel, safeChecked, violationChecked, violationSub, multiChecked, isNone };
-    setAnswers(prev => {
-      const copy = [...prev];
-      copy[index] = payload;
-      return copy;
+    visibleQuestionBank.forEach((q) => {
+      if (q.kind === 'score') {
+        maxTotalScore += 100; // 假設每題最高 100 分
+        
+        const ans = answersByCode[q.code];
+        if (ans && ans.path && ans.path.length > 0) {
+          const lastNodeId = ans.path[ans.path.length - 1];
+          const leafNode = q.nodes.find(n => n.id === lastNodeId);
+          if (leafNode && typeof leafNode.score === 'number') {
+            cumulativeScore += leafNode.score;
+          }
+        }
+      }
     });
-    return payload;
+  }
+	// --------------------------
+
+  // const treeIndex = useMemo(() => buildTreeIndex(currentQuestion?.nodes || []), [currentQuestion]);
+  // const selectedPath = Array.isArray(currentAnswer.path) ? currentAnswer.path : [];
+  // const selectedLeafNode = getLeafNode(currentQuestion, currentAnswer);
+  // // const canAdvance = Boolean(selectedLeafNode?.isTerminal);
+	// const canAdvance = currentQuestion?.kind === 'signal' 
+  //   ? Array.isArray(currentAnswer.selectedIds) && currentAnswer.selectedIds.length > 0
+  //   : selectedPath.length > 0;
+
+  useEffect(() => {
+    setShowHint(false);
+  }, [currentIndex]);
+
+  useEffect(() => {
+    const activeButton = document.querySelector(`[data-question-nav="${currentIndex}"]`);
+    if (activeButton) {
+      activeButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [currentIndex]);
+
+  const updateAnswer = (questionCode, nextAnswer) => {
+    setAnswersByCode((previous) => ({
+      ...previous,
+      [questionCode]: nextAnswer,
+    }));
   };
 
-  const loadAnswersToLocal = (index) => {
-    applyAnswerToLocal(answers[index] || {});
+	const handleSelectNode = (node) => {
+    if (!currentQuestion) return;
+
+    const noneKeywords = ['皆無', '兩者皆無', '尚未收到', '否', '不清楚', '尚未確定'];
+    const isNoneOption = node.isNone || noneKeywords.some(text => node.label.includes(text));
+
+    if (isNoneOption) {
+      // 找出原本已經選取，準備被清掉的選項 ID
+      let previousSelected = [];
+      if (currentQuestion.kind === 'signal') {
+        previousSelected = Array.isArray(currentAnswer.selectedIds) ? currentAnswer.selectedIds : [];
+      } else {
+        previousSelected = Array.isArray(currentAnswer.path) ? currentAnswer.path : [];
+      }
+
+      // 排除掉當前點擊的選項自己，剩下的就是需要被「晃掉」的選項
+      const nodesToShake = previousSelected.filter(id => id !== node.id);
+
+      // if (nodesToShake.length > 0) {
+      //   setShakingNodeIds(nodesToShake);
+      //   setTimeout(() => {
+      //     setShakingNodeIds([]);
+      //   }, 500);
+      // }
+    }
+
+    if (currentQuestion.kind === 'signal') {
+      // --- 複選題邏輯 ---
+      const limit = currentQuestion.multiSelectLimit || 1;
+      let nextSelectedIds = Array.isArray(currentAnswer.selectedIds) ? [...currentAnswer.selectedIds] : [];
+      
+      if (node.isTerminal) {
+        if (isNoneOption) {
+          // 若點選「尚未收到/不清楚」等皆無選項，則清空其他，只保留自己
+          nextSelectedIds = [node.id];
+        } else {
+          // 修改：若點選一般選項，先清掉陣列裡所有的排他性選項（防呆）
+          nextSelectedIds = nextSelectedIds.filter(id => {
+            const n = treeIndex.nodeMap.get(id);
+            return n && !noneKeywords.some(text => n.label.includes(text)) && !n.isNone;
+          });
+
+          // 點擊反選邏輯
+          if (nextSelectedIds.includes(node.id)) {
+            nextSelectedIds = nextSelectedIds.filter(id => id !== node.id); // 已選則取消
+          } else {
+            if (nextSelectedIds.length >= limit) {
+              nextSelectedIds.shift(); // 若超過上限，把最早選的擠掉
+            }
+            nextSelectedIds.push(node.id); // 尚未選則加入
+          }
+        }
+      }
+
+      updateAnswer(currentQuestion.code, {
+        path: buildPathToNode(node, treeIndex.nodeMap), 
+        selectedIds: nextSelectedIds                    
+      });
+    } else {
+      // --- 原本單選邏輯 ---
+      updateAnswer(currentQuestion.code, {
+        path: buildPathToNode(node, treeIndex.nodeMap),
+      });
+    }
+  };
+
+  const hasAnswer = (question) => {
+    const answer = answersByCode[question.code];
+    if (!answer) return false;
+
+    if (question.kind === 'signal') {
+      return Array.isArray(answer.selectedIds) && answer.selectedIds.length > 0;
+    }
+
+    return Array.isArray(answer.path) && answer.path.length > 0;
   };
 
   const handleJumpToQuestion = (index) => {
     if (index === currentIndex) return;
-    saveCurrentStateToAnswers(currentIndex);
     setIsTransitioning(true);
-    setTimeout(() => {
+    window.setTimeout(() => {
       setCurrentIndex(index);
-      loadAnswersToLocal(index);
       setIsTransitioning(false);
-    }, 200);
+    }, 160);
   };
-
-  useEffect(() => {
-    if (navRef.current) {
-      const activeButton = navRef.current.children[currentIndex];
-      if (activeButton) activeButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  }, [currentIndex]);
-
-  const handleNoneClick = () => {
-    if (!isNone) {
-      const hasAnySelection = check1 || check2 || seqLevel > 0 || safeChecked || violationChecked || Object.values(multiChecked).some(v => v);
-      if (hasAnySelection) {
-        setIsShaking(true);
-        setTimeout(() => setIsShaking(false), 300);
-      }
-      resetAllStates();
-      setIsNone(true);
-    } else setIsNone(false);
-  };
-
-  // --- Handlers ---
-  const handleCheck1Toggle = () => { setCheck1(prev => !prev); setIsNone(false); saveCurrentStateToAnswers(currentIndex); };
-  const handleCheck2Toggle = () => {
-    const nextState = !check2;
-    setCheck2(nextState);
-    if (nextState && currentQ.subOptions) setSubValue(currentQ.subOptions[0].value);
-    else setSubValue(null);
-    setIsNone(false);
-    saveCurrentStateToAnswers(currentIndex);
-  };
-
-  const handleSeqClick = (level) => {
-    setIsNone(false);
-    if (seqLevel === level) setSeqLevel(level - 1);
-    else setSeqLevel(level);
-    saveCurrentStateToAnswers(currentIndex);
-  };
-
-  let isNextDisabled = true;
-  if (currentQ.type === 'parallel') {
-    isNextDisabled = !check1 && !check2 && !isNone;
-  } else if (currentQ.type === 'sequential') {
-    isNextDisabled = seqLevel === 0 && !isNone;
-  } else if (currentQ.type === 'violation') {
-    isNextDisabled = !safeChecked && (!violationChecked || !violationSub) && !isNone;
-  } else if (currentQ.type === 'multiple') {
-    isNextDisabled = Object.values(multiChecked).every(v => !v) && !isNone;
-  }
 
   const handleNextQuestion = () => {
-    if (isNextDisabled) return;
-    setIsTransitioning(true);
-    setTimeout(() => {
-      const payload = saveCurrentStateToAnswers(currentIndex);
-      const nextAnswers = [...answers];
-      nextAnswers[currentIndex] = payload;
+    if (!canAdvance) return;
 
-      if (currentIndex < questionBank.length - 1) {
-        const next = currentIndex + 1;
-        setCurrentIndex(next);
-        loadAnswersToLocal(next);
-      } else {
-        const axisScores = buildAxisScores(nextAnswers, questionBank);
-        if (typeof onComplete === 'function') onComplete(axisScores);
+    setIsTransitioning(true);
+    window.setTimeout(() => {
+      if (currentIndex < visibleQuestionBank.length - 1) {
+        setCurrentIndex((previous) => previous + 1);
+        setIsTransitioning(false);
+        return;
+      }
+
+      const reportSummary = buildReportSummary(answersByCode, questionBank);
+      if (typeof onComplete === 'function') {
+        onComplete(reportSummary);
       }
       setIsTransitioning(false);
-    }, 300);
+    }, 220);
   };
 
-  useEffect(() => {
-    loadAnswersToLocal(currentIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // 修改：繪製精準的 L 型連結線
+  const renderNodes = (parentId = null, depth = 0) => {
+    const children = treeIndex.childrenMap.get(parentId ?? '__root__') || [];
 
-  const hasAnswer = (idx) => {
-    const a = answers[idx] || {};
-    return Boolean(a.isNone || a.check1 || a.check2 || (a.seqLevel > 0) || a.safeChecked || a.violationChecked || (a.multiChecked && Object.values(a.multiChecked).some(v => v)));
+    return (
+      <div className={depth === 0 ? 'space-y-3' : 'mt-3 space-y-3'}>
+        {children.map((node, index) => {
+          const childNodes = treeIndex.childrenMap.get(node.id) || [];
+
+					const isActive = currentQuestion.kind === 'signal' && node.isTerminal
+					? (currentAnswer.selectedIds || []).includes(node.id)
+					: selectedPath.includes(node.id);
+
+          const canExpand = childNodes.length > 0 && !node.isTerminal;
+          const shouldShowChildren = selectedPath.includes(node.id) && canExpand;
+          const buttonClasses = isActive
+            ? 'border-slate-700 bg-slate-800 text-white shadow-md'
+            : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100';
+
+					const isShaking = shakingNodeIds.includes(node.id);
+          const isLast = index === children.length - 1;
+
+					return (
+            <div key={node.id} className={`relative ${depth > 0 ? 'ml-6' : ''}`}>
+              
+              {/* 1. 垂直延伸線：留在最外層。如果不是最後一個節點，則線條往下貫穿整個區塊 (包含子節點的高度) */}
+              {depth > 0 && !isLast && (
+                <div className="absolute -top-1 -left-6 w-[2px] h-[calc(100%+12px)] bg-slate-200" />
+              )}
+
+              {/* 2. 按鈕專屬容器：多包這一層 relative，確保弧線的高度 (50%) 永遠只對齊按鈕正中央，不會被子節點撐高 */}
+              <div className="relative">
+                {depth > 0 && (
+                  <div className="absolute -top-1 -left-6 w-4 h-[calc(50%+12px)] rounded-bl-xl border-b-2 border-l-2 border-slate-200" />
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectNode(node)}
+                  className={`relative z-10 w-full rounded-xl border px-4 py-3.5 text-left text-sm sm:text-base font-medium transition-all touch-manipulation ${buttonClasses} ${
+                    // isShakingAll ? 'animate-shake-x' : ''
+										isShaking ? 'animate-shake-x' : '' // <--- 改回使用 isShaking
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="leading-relaxed">{node.label}</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* 子節點遞迴 */}
+              {shouldShowChildren && renderNodes(node.id, depth + 1)}
+            </div>
+          );
+
+        })}
+      </div>
+    );
   };
 
-  const createRandomAnswerForQuestion = (q) => {
-    if (q.type === 'parallel') {
-      const state = Math.floor(Math.random() * 4);
-      const check1Random = state === 1 || state === 3;
-      const check2Random = state === 2 || state === 3;
-      const subValueRandom = check2Random && q.subOptions?.length
-        ? q.subOptions[Math.floor(Math.random() * q.subOptions.length)].value
-        : null;
+	const buildRandomVisibleAnswer = (question) => {
+		const terminalPaths = collectTerminalPaths(question);
+		if (terminalPaths.length === 0) {
+			return createEmptyAnswer(question);
+		}
 
-      return {
-        check1: check1Random,
-        check2: check2Random,
-        subValue: subValueRandom,
-        seqLevel: 0,
-        safeChecked: false,
-        violationChecked: false,
-        violationSub: null,
-        multiChecked: {},
-        isNone: state === 0,
-      };
-    }
+		const selectedPath = terminalPaths[Math.floor(Math.random() * terminalPaths.length)];
+		
+		// 修改：如果是 signal 題型，必須要把 terminal 節點塞進 selectedIds 裡面
+		if (question.kind === 'signal') {
+			return { 
+				path: selectedPath, 
+				selectedIds: [selectedPath[selectedPath.length - 1]] 
+			};
+		}
 
-    if (q.type === 'sequential') {
-      const maxLevel = q.steps?.length || 0;
-      const seqLevelRandom = Math.floor(Math.random() * (maxLevel + 1));
-
-      return {
-        check1: false,
-        check2: false,
-        subValue: null,
-        seqLevel: seqLevelRandom,
-        safeChecked: false,
-        violationChecked: false,
-        violationSub: null,
-        multiChecked: {},
-        isNone: seqLevelRandom === 0,
-      };
-    }
-
-    if (q.type === 'violation') {
-      const state = Math.floor(Math.random() * 4);
-      const violationSubRandom = (state === 2 || state === 3) && q.subOptions?.length
-        ? q.subOptions[Math.floor(Math.random() * q.subOptions.length)].value
-        : null;
-
-      return {
-        check1: false,
-        check2: false,
-        subValue: null,
-        seqLevel: 0,
-        safeChecked: state === 0,
-        violationChecked: state === 2 || state === 3,
-        violationSub: violationSubRandom,
-        multiChecked: {},
-        isNone: state === 1,
-      };
-    }
-
-    if (q.type === 'multiple') {
-      const multiCheckedRandom = {};
-      let hasSelection = false;
-
-      (q.options || []).forEach((opt) => {
-        const selected = Math.random() > 0.5;
-        multiCheckedRandom[opt.id] = selected;
-        hasSelection = hasSelection || selected;
-      });
-
-      return {
-        check1: false,
-        check2: false,
-        subValue: null,
-        seqLevel: 0,
-        safeChecked: false,
-        violationChecked: false,
-        violationSub: null,
-        multiChecked: multiCheckedRandom,
-        isNone: !hasSelection,
-      };
-    }
-
-    return {
-      check1: false,
-      check2: false,
-      subValue: null,
-      seqLevel: 0,
-      safeChecked: false,
-      violationChecked: false,
-      violationSub: null,
-      multiChecked: {},
-      isNone: true,
-    };
-  };
+		return { path: selectedPath };
+	};
 
   const randomFillCurrent = () => {
     if (!ENABLE_TEST_FILL) return;
-    const randomAnswers = questionBank.map((question) => createRandomAnswerForQuestion(question));
-    setAnswers(randomAnswers);
-    applyAnswerToLocal(randomAnswers[currentIndex]);
+
+    const nextAnswers = { ...answersByCode };
+    visibleQuestionBank.forEach((question) => {
+      nextAnswers[question.code] = buildRandomVisibleAnswer(question);
+    });
+    setAnswersByCode(nextAnswers);
   };
 
-  return (
-    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0">
+  if (!currentQuestion) return null;
 
-      {/* Progress Navigation */}
-      <div className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden">
-        <div className="p-2 sm:p-3 flex items-center overflow-x-auto hide-scrollbar" ref={navRef}>
-          {questionBank.map((q, idx) => {
-            const answered = hasAnswer(idx);
-            const baseClass = `flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 mx-1 rounded-full text-xs sm:text-sm font-bold transition-all duration-300`;
-            const cls = idx === currentIndex
-              ? `${baseClass} bg-slate-600 text-white ring-2 ring-slate-400 shadow-md`
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 sm:px-0">
+      {/* 新增：定義左右晃動的 CSS 動畫 */}
+      <style>{`
+        @keyframes shake-x {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-5px); }
+          40%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake-x {
+          animation: shake-x 0.4s ease-in-out;
+        }
+      `}</style>
+
+      <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="flex items-center overflow-x-auto p-2 sm:p-3 hide-scrollbar" role="tablist" aria-label="問卷導覽">
+          {visibleQuestionBank.map((question, index) => {
+            const answered = hasAnswer(question);
+            const baseClass = 'mx-1 flex-shrink-0 h-10 w-10 rounded-full text-xs font-bold transition-all duration-300 sm:h-12 sm:w-12 sm:text-sm';
+            const className = index === currentIndex
+              ? `${baseClass} bg-slate-800 text-white ring-2 ring-slate-400 shadow-md`
               : answered
-                ? `${baseClass} bg-slate-400 text-white`
+                ? `${baseClass} bg-slate-500 text-white`
                 : `${baseClass} bg-slate-100 text-slate-400 hover:bg-slate-200`;
+
             return (
-              <button key={q.id} onClick={() => handleJumpToQuestion(idx)} className={cls} title={`第 ${idx + 1} 題`}>
-                {idx + 1}
+              <button
+                key={question.code}
+                type="button"
+                data-question-nav={index}
+                onClick={() => handleJumpToQuestion(index)}
+                className={className}
+                title={`第 ${index + 1} 題 ${question.code}`}
+              >
+                {index + 1}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Question Card */}
-      <div className={`bg-white rounded-xl shadow-sm font-sans transition-opacity duration-300 overflow-hidden ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`overflow-hidden rounded-2xl bg-white shadow-sm transition-opacity duration-300 ${isTransitioning ? 'opacity-40' : 'opacity-100'}`}>
         <div className="p-5 sm:p-8">
-          <div className="text-xs font-semibold text-slate-500 mb-2 tracking-wider uppercase">
-            {currentQ.prefix} / {questionBank.length}
+
+					{/* 👇 3. 顯示開發者 Debug 分數標籤 */}
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+            {ENABLE_DEBUG_SCORE && (
+              <span className="rounded-md bg-amber-100 px-2 py-1 text-amber-700 border border-amber-200">
+                🔧 Debug: 本題 {currentQuestionScore} 分 | 累計 {cumulativeScore} / {maxTotalScore}
+              </span>
+            )}
           </div>
-          <h2 className="text-lg sm:text-xl font-bold mb-6 text-slate-800 leading-snug">
-            {currentQ.title}
+
+          <h2 className="mb-4 text-lg font-bold leading-snug text-slate-900 sm:text-2xl">
+            {currentQuestion.title}
           </h2>
 
-          <div className={`space-y-3 ${isShaking ? 'animate-shake' : 'transition-colors duration-300'}`}>
+          <button
+            type="button"
+            onClick={() => setShowHint((previous) => !previous)}
+            className="mb-5 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-100"
+          >
+            這題在問什麼
+          </button>
 
-            {currentQ.type === 'parallel' && (
-              <>
-                <button onClick={handleCheck1Toggle} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg font-medium transition-all text-sm sm:text-base touch-manipulation ${check1 ? 'bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                  {check1 ? '☑' : '☐'} {currentQ.check1Label}
-                </button>
-                <div className="space-y-2">
-                  <button onClick={handleCheck2Toggle} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg font-medium transition-all text-sm sm:text-base touch-manipulation ${check2 ? 'bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                    {check2 ? '☑' : '☐'} {currentQ.check2Label}
-                  </button>
-                  {check2 && currentQ.subOptions && (
-                    <div className="space-y-2 mt-3 animate-fade-in-down ml-4 sm:ml-6 border-l-2 border-slate-200 pl-4">
-                      {currentQ.subOptions.map((sub) => (
-                        <label key={sub.value} className={`flex items-center gap-3 w-full px-3 sm:px-4 py-3 rounded-lg border transition-all cursor-pointer text-sm sm:text-base touch-manipulation ${subValue === sub.value ? 'border-slate-400 bg-slate-100 text-slate-800' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
-                          <input type="radio" checked={subValue === sub.value} onChange={() => { setSubValue(sub.value); setIsNone(false); saveCurrentStateToAnswers(currentIndex); }} className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                          <span className="font-medium">{sub.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+          {showHint && (
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+              <p>{currentQuestion.plainExplanation}</p>
+            </div>
+          )}
 
-            {currentQ.type === 'sequential' && (
-              <div className="space-y-3">
-                {currentQ.steps.map((step) => {
-                  const isVisible = step.level === 1 || seqLevel >= step.level - 1;
-                  const isActive = seqLevel >= step.level;
-                  if (!isVisible) return null;
-                  return (
-                    <div key={step.level} className="animate-fade-in-down">
-                      <button onClick={() => handleSeqClick(step.level)} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg border font-medium transition-all text-sm sm:text-base touch-manipulation ${isActive ? 'border-slate-500 bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                        <span className="inline-flex items-center justify-center w-6 h-6 mr-3 rounded-full text-xs font-semibold bg-white/20 text-current align-middle flex-shrink-0">
-                          {step.level}
-                        </span>
-                        {step.label}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {currentQ.type === 'violation' && (
-              <>
-                <button onClick={() => { setSafeChecked(true); setViolationChecked(false); setViolationSub(null); setIsNone(false); saveCurrentStateToAnswers(currentIndex); }} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg font-medium transition-all text-sm sm:text-base touch-manipulation ${safeChecked ? 'bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                  {safeChecked ? '☑' : '☐'} {currentQ.safeLabel}
-                </button>
-                <div className="space-y-2">
-                  <button onClick={() => { setViolationChecked(true); setSafeChecked(false); if(!violationSub) setViolationSub(currentQ.subOptions[0].value); setIsNone(false); saveCurrentStateToAnswers(currentIndex); }} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg font-medium transition-all text-sm sm:text-base touch-manipulation ${violationChecked ? 'bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                    {violationChecked ? '☑' : '☐'} {currentQ.violationLabel}
-                  </button>
-                  {violationChecked && (
-                    <div className="space-y-2 mt-3 animate-fade-in-down ml-4 sm:ml-6 border-l-2 border-slate-200 pl-4">
-                      {currentQ.subOptions.map((sub) => (
-                        <label key={sub.value} className={`flex items-center gap-3 w-full px-3 sm:px-4 py-3 rounded-lg border transition-all cursor-pointer text-sm sm:text-base touch-manipulation ${violationSub === sub.value ? 'border-slate-400 bg-slate-100 text-slate-800' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
-                          <input type="radio" checked={violationSub === sub.value} onChange={() => { setViolationSub(sub.value); setIsNone(false); saveCurrentStateToAnswers(currentIndex); }} className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                          <span className="font-medium">{sub.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {currentQ.type === 'multiple' && (
-              <div className="space-y-3">
-                {currentQ.options.map((opt) => (
-                  <button key={opt.id} onClick={() => { 
-                    setMultiChecked(prev => {
-                      const next = {...prev, [opt.id]: !prev[opt.id]};
-                      setTimeout(() => saveCurrentStateToAnswers(currentIndex), 10);
-                      return next;
-                    }); 
-                    setIsNone(false); 
-                  }} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg font-medium transition-all text-sm sm:text-base touch-manipulation ${multiChecked[opt.id] ? 'bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                    {multiChecked[opt.id] ? '☑' : '☐'} {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="border-t border-slate-200 my-6"></div>
-
-            <button onClick={handleNoneClick} className={`w-full text-left px-4 py-3.5 sm:py-4 rounded-lg font-medium transition-all text-sm sm:text-base touch-manipulation ${isNone ? 'bg-slate-700 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-              {isNone ? '☑' : '☐'} {currentQ.noneLabel}
-            </button>
+          <div className="space-y-4">
+            {renderNodes()}
           </div>
 
-          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
-            {ENABLE_TEST_FILL && (
-              <button onClick={randomFillCurrent} className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-medium transition-all touch-manipulation">隨機填答全部</button>
-            )}
-            <button onClick={handleNextQuestion} disabled={isNextDisabled} className={`flex-1 sm:flex-none px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-bold text-sm sm:text-base transition-all touch-manipulation ${
-              isNextDisabled ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-md active:scale-95'
-            }`}>
-              {currentIndex === questionBank.length - 1 ? '看結果' : '下一題'}
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <button
+              type="button"
+              onClick={handleNextQuestion}
+              disabled={!canAdvance}
+              className={`w-full rounded-xl px-5 py-3 text-base font-bold transition-all touch-manipulation sm:w-auto ${
+                canAdvance
+                  ? 'bg-slate-800 text-white shadow-md hover:bg-slate-700 active:scale-[0.99]'
+                  : 'cursor-not-allowed bg-slate-200 text-slate-400'
+              }`}
+            >
+              {currentIndex === visibleQuestionBank.length - 1 ? '看結果' : '下一題'}
             </button>
+
+            {ENABLE_TEST_FILL && (
+              <button
+                type="button"
+                onClick={randomFillCurrent}
+                className="mt-3 w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-200 sm:mt-0 sm:ml-3 sm:w-auto"
+              >
+                隨機填答全部
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}} />
     </div>
   );
 };

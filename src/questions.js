@@ -1,317 +1,430 @@
-// src/questions.js
+const createNode = (id, parentId, depth, label, score, isTerminal, extra = {}) => ({
+  id,
+  parentId,
+  depth,
+  label,
+  score,
+  isTerminal,
+  ...extra,
+});
+
+const createTreeQuestion = ({
+  order,
+  code,
+  axisIndex,
+  weight,
+  title,
+  plainExplanation,
+  riskType,
+  nodes,
+}) => ({
+  order,
+  code,
+  kind: 'score',
+  visible: true,
+  answerMode: 'tree',
+  axisIndex,
+  weight,
+  title,
+  plainExplanation,
+  riskType,
+  nodes,
+});
+
+const createComplianceQuestion = ({
+  order,
+  code,
+  title,
+  plainExplanation,
+  riskType,
+  nodes,
+}) => ({
+  order,
+  code,
+  kind: 'compliance',
+  visible: true,
+  answerMode: 'tree',
+  title,
+  plainExplanation,
+  riskType,
+  nodes,
+});
+
+const createSignalQuestion = ({
+  order,
+  code,
+  title,
+  plainExplanation,
+  riskType,
+  nodes,
+  multiSelectLimit,
+}) => ({
+  order,
+  code,
+  kind: 'signal',
+  visible: true,
+  answerMode: 'signal',
+  title,
+  plainExplanation,
+  riskType,
+  nodes,
+  multiSelectLimit,
+});
 
 export const questionBank = [
-  // --- G: 公司治理與誠信 ---
-  {
-    id: 1, type: "parallel", prefix: "G1",
-    title: "貴公司資安管理與客戶資料保護，目前實際狀況為何？",
-    check1Label: "有資安防護設備", check2Label: "訂有資安管理規則",
-    subOptions: [
-      { value: 'no-leak', label: '近三年無資料外洩事件' },
-      { value: 'improved', label: '近三年曾有投訴但已改善' }
+  createTreeQuestion({
+    order: 1,
+    code: 'G1',
+    axisIndex: 0,
+    weight: 1,
+    title: '貴公司資安管理與客戶資料保護，目前實際狀況為何？',
+    plainExplanation: '這題在看公司是否已把客戶資料保護與資安管理做成正式制度，並且是否真的有落實到人員與事件管理。',
+    riskType: '法規合規、制度文件、執行紀錄、佐證文件',
+    nodes: [
+      createNode('G1-1', null, 0, '訂有資安管理規則', 40, false),
+      createNode('G1-1-1', 'G1-1', 1, '設有專責資安人員或單位', 70, false),
+      createNode('G1-1-1-1', 'G1-1-1', 2, '近三年無客戶資料外洩或隱私投訴', 100, true),
+      createNode('G1-2', null, 0, '僅有基本防護設備，未訂管理規則', 20, true),
+      createNode('G1-3', null, 0, '皆無', 0, true),
+      createNode('G1-4', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "皆無 / 不清楚",
-    calculateScore: ({ check1, check2, subValue, isNone }) => {
-      if (check1 && check2 && subValue === 'no-leak') return 100;   //[cite: 1]
-      if (check1 && check2 && subValue === 'improved') return 60;   //[cite: 1]
-      if (!check1 && check2 && subValue === 'no-leak') return 60;
-      if (!check1 && check2 && subValue === 'improved') return 30;
-      if (check1 && !check2) return 30;                             //[cite: 1]
-      if (isNone) return 0;                                         //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 2, type: "sequential", prefix: "G2",
-    title: "貴公司永續發展 (ESG) 推動現況為何？",
-    steps: [
-      { level: 1, label: "有專責單位或專人推動" },
-      { level: 2, label: "已納入企業策略" },
-      { level: 3, label: "訂有短中長期目標" }
+  }),
+  createTreeQuestion({
+    order: 2,
+    code: 'G2',
+    axisIndex: 0,
+    weight: 1.5,
+    title: '貴公司永續發展（ESG）推動現況為何？',
+    plainExplanation: '這題在看 ESG 是不是已經有人負責、是否納入經營策略，以及是否有明確目標。',
+    riskType: '制度文件、執行紀錄、佐證文件',
+    nodes: [
+      createNode('G2-1', null, 0, '有專責單位或專人推動', 40, false),
+      createNode('G2-1-1', 'G2-1', 1, '已納入企業策略', 70, false),
+      createNode('G2-1-1-1', 'G2-1-1', 2, '訂有短中長期目標', 100, true),
+      createNode('G2-2', null, 0, '僅有初步想法 / 尚未開始', 0, true),
     ],
-    noneLabel: "僅初步想法 / 尚未開始",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 3) return 100;     //[cite: 1]
-      if (seqLevel === 2) return 60;      //[cite: 1]
-      if (seqLevel === 1) return 30;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 3, type: "sequential", prefix: "G3",
-    title: "貴公司反賄賂與商業道德政策，實際執行情形為何？",
-    steps: [
-      { level: 1, label: "訂有反賄賂與商業道德政策" },
-      { level: 2, label: "近一年辦過相關教育訓練" }
+  }),
+  createTreeQuestion({
+    order: 3,
+    code: 'G3',
+    axisIndex: 0,
+    weight: 1,
+    title: '貴公司反賄賂與商業道德政策，實際執行情形為何？',
+    plainExplanation: '這題在看公司是否有反賄賂與商業道德政策，以及是否有對員工做過相關宣導或訓練。',
+    riskType: '制度文件、執行紀錄、法規合規',
+    nodes: [
+      createNode('G3-1', null, 0, '訂有反賄賂與商業道德政策', 60, false),
+      createNode('G3-1-1', 'G3-1', 1, '近一年辦理過相關教育訓練', 100, true),
+      createNode('G3-2', null, 0, '尚未訂定', 0, true),
+      createNode('G3-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "尚未訂定 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 2) return 100;     //[cite: 1]
-      if (seqLevel === 1) return 60;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 4, type: "violation", prefix: "G4",
-    title: "貴公司近三年是否曾因反競爭行為、壟斷受到裁罰或訴訟？",
-    safeLabel: "無受罰或訴訟紀錄",
-    violationLabel: "曾受裁罰或訴訟",
-    subOptions: [
-      { value: 'improved', label: '已改善結案' },
-      { value: 'not-improved', label: '尚未結案或改善' }
+  }),
+  createTreeQuestion({
+    order: 4,
+    code: 'G5',
+    axisIndex: 0,
+    weight: 1.5,
+    title: '貴公司對供應商的 ESG 管理，目前推動到哪個階段？',
+    plainExplanation: '這題在看公司是否已把 ESG 要求往供應鏈延伸，並且是否有稽核或查核機制。',
+    riskType: '供應鏈延伸風險、制度文件、執行紀錄、佐證文件',
+    nodes: [
+      createNode('G5-1', null, 0, '已要求供應商簽署行為準則（RBA 或客戶版本）', 40, false),
+      createNode('G5-1-1', 'G5-1', 1, '已自訂供應商 ESG 準則並要求簽署', 70, false),
+      createNode('G5-1-1-1', 'G5-1-1', 2, '已對供應商執行實地或書面稽核', 100, true),
+      createNode('G5-2', null, 0, '尚未對供應商提出 ESG 要求', 0, true),
+      createNode('G5-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "不清楚",
-    calculateScore: ({ safeChecked, violationSub, isNone }) => {
-      if (safeChecked) return 100;                      //[cite: 1]
-      if (violationSub === 'improved') return 60;       //[cite: 1]
-      if (violationSub === 'not-improved') return 0;    //[cite: 1]
-      if (isNone) return 30;                            //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 5, type: "multiple", prefix: "G5",
-    title: "貴公司對供應商的 ESG / 永續管理，有採取哪些做法？（可複選）",
-    options: [
-      { id: 'opt1', label: '已簽署 RBA 或客戶要求之供應商行為準則' },
-      { id: 'opt2', label: '對供應商執行環安衛稽核' },
-      { id: 'opt3', label: '已制定 ESG 準則並要求供應商簽署' },
-      { id: 'opt4', label: '可提供近 2 年會計簽證財務報表' }
+  }),
+  createTreeQuestion({
+    order: 5,
+    code: 'S3',
+    axisIndex: 1,
+    weight: 1.5,
+    title: '貴公司在童工與人權風險管理方面，目前狀況為何？',
+    plainExplanation: '這題在看公司是否確認沒有童工、是否有做人權風險辨識與改善流程。',
+    riskType: '法規合規、執行紀錄、佐證文件',
+    nodes: [
+      createNode('S3-1', null, 0, '已確認無童工雇用且符合當地法規', 30, false),
+      createNode('S3-1-1', 'S3-1', 1, '已建立或正在建立人權盡職調查機制', 60, false),
+      createNode('S3-1-1-1', 'S3-1-1', 2, '已完成盡職調查並訂有改善計畫', 100, true),
+      createNode('S3-2', null, 0, '有僱用未滿18歲員工或不確定是否符合法規', 0, true),
+      createNode('S3-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "皆無採取上述做法",
-    calculateScore: ({ multiChecked, isNone }) => {
-      if (isNone) return 0;                             //[cite: 1]
-      const count = Object.values(multiChecked).filter(Boolean).length;
-      return count * 25; // 每項 25 分，最高 100 分[cite: 1]
-    }
-  },
-
-  // --- S: 社會與勞動人權 ---
-  {
-    id: 6, type: "violation", prefix: "S1",
-    title: "貴公司近三年是否曾違反《勞動基準法》且遭裁罰？",
-    safeLabel: "無違反紀錄", violationLabel: "曾違反且遭裁罰",
-    subOptions: [
-      { value: 'improved', label: '已提出改善計畫' },
-      { value: 'not-improved', label: '未提出改善計畫' }
+  }),
+  createTreeQuestion({
+    order: 6,
+    code: 'S4',
+    axisIndex: 1,
+    weight: 1.5,
+    title: '貴公司職業安全衛生管理，目前狀況為何？',
+    plainExplanation: '這題在看公司是否有職安衛制度、是否真的有落實，以及是否有職災改善紀錄。',
+    riskType: '法規合規、制度文件、執行紀錄',
+    nodes: [
+      createNode('S4-1', null, 0, '內部訂有職業安全衛生規範', 30, false),
+      createNode('S4-1-1', 'S4-1', 1, '規範已完整實施並定期更新', 60, false),
+      createNode('S4-1-1-1', 'S4-1-1', 2, '近一年無職災，或職災已改善結案', 100, true),
+      createNode('S4-2', null, 0, '尚未訂定規範', 0, true),
+      createNode('S4-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "不清楚",
-    calculateScore: ({ safeChecked, violationSub, isNone }) => {
-      if (safeChecked) return 100;                      //[cite: 1]
-      if (violationSub === 'improved') return 60;       //[cite: 1]
-      if (violationSub === 'not-improved') return 0;    //[cite: 1]
-      if (isNone) return 30;                            //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 7, type: "violation", prefix: "S2",
-    title: "貴公司近三年在性別平等 / 反歧視方面，實際狀況為何？",
-    safeLabel: "無違法紀錄，且無經證實之歧視事件", violationLabel: "曾發生相關歧視事件",
-    subOptions: [
-      { value: 'improved', label: '已全部改善' },
-      { value: 'not-improved', label: '尚未完成改善' }
+  }),
+  createTreeQuestion({
+    order: 7,
+    code: 'S6',
+    axisIndex: 1,
+    weight: 1,
+    title: '貴公司對員工組織工會或集體談判權利，實際做法為何？',
+    plainExplanation: '這題在看公司是否保障員工組織工會與集體談判的權利，並有無勞資溝通機制。',
+    riskType: '法規合規、制度文件、執行紀錄',
+    nodes: [
+      createNode('S6-1', null, 0, '未限制員工籌組工會或集體談判', 60, false),
+      createNode('S6-1-1', 'S6-1', 1, '設有勞資溝通機制並定期運作', 100, true),
+      createNode('S6-2', null, 0, '有限制員工組織工會', 0, true),
+      createNode('S6-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "不清楚",
-    calculateScore: ({ safeChecked, violationSub, isNone }) => {
-      if (safeChecked) return 100;                      //[cite: 1]
-      if (violationSub === 'improved') return 60;       //[cite: 1]
-      if (violationSub === 'not-improved') return 0;    //[cite: 1]
-      if (isNone) return 30;                            //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 8, type: "sequential", prefix: "S3",
-    title: "貴公司是否確認無童工雇用，並進行人權盡職調查？",
-    steps: [
-      { level: 1, label: "確認無童工雇用" },
-      { level: 2, label: "人權盡職調查機制建立中" },
-      { level: 3, label: "已完成盡職調查並訂有改善計畫" }
+  }),
+  createTreeQuestion({
+    order: 8,
+    code: 'S7',
+    axisIndex: 1,
+    weight: 1,
+    title: '貴公司員工申訴與意見蒐集機制，運作情形為何？',
+    plainExplanation: '這題在看公司是否有申訴管道，以及是否有持續蒐集員工意見並留下紀錄。',
+    riskType: '制度文件、執行紀錄、佐證文件',
+    nodes: [
+      createNode('S7-1', null, 0, '設有員工申訴管道', 60, false),
+      createNode('S7-1-1', 'S7-1', 1, '另有定期執行員工滿意度或意見調查', 100, true),
+      createNode('S7-2', null, 0, '兩者皆無', 0, true),
+      createNode('S7-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "有僱用未滿18歲員工 / 不符法規 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 3) return 100;     //[cite: 1]
-      if (seqLevel === 2) return 60;      //[cite: 1]
-      if (seqLevel === 1) return 30;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 9, type: "sequential", prefix: "S4",
-    title: "貴公司職業安全衛生管理與職災紀錄，實際狀況為何？",
-    steps: [
-      { level: 1, label: "內部訂有職業安全衛生規範" },
-      { level: 2, label: "規範已完整實施" },
-      { level: 3, label: "定期更新規範，且近一年無職災" }
+  }),
+  createTreeQuestion({
+    order: 9,
+    code: 'E2',
+    axisIndex: 2,
+    weight: 1,
+    title: '貴公司再生能源使用情形為何？',
+    plainExplanation: '這題在看公司是否已開始評估、實際使用，並且有沒有持續追蹤再生能源使用比例。',
+    riskType: '數據揭露、執行紀錄、佐證文件',
+    nodes: [
+      createNode('E2-1', null, 0, '已開始規劃或評估', 30, false),
+      createNode('E2-1-1', 'E2-1', 1, '已實際使用（購買或自發電）', 60, false),
+      createNode('E2-1-1-1', 'E2-1-1', 2, '持續追蹤使用比例', 100, true),
+      createNode('E2-2', null, 0, '尚未考慮', 0, true),
+      createNode('E2-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "尚未訂定規範 / 職災尚未完成改善",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 3) return 100;     //[cite: 1]
-      if (seqLevel === 2) return 60;      //[cite: 1]
-      if (seqLevel === 1) return 30;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 10, type: "violation", prefix: "S5",
-    title: "去年度是否曾因強迫勞動、工時薪資違反而受主管機關裁罰？",
-    safeLabel: "無受罰紀錄", violationLabel: "曾受主管機關裁罰",
-    subOptions: [
-      { value: 'improved', label: '已提出改善計畫' },
-      { value: 'not-improved', label: '未提出改善計畫' }
+  }),
+  createTreeQuestion({
+    order: 10,
+    code: 'E4',
+    axisIndex: 2,
+    weight: 1.5,
+    title: '貴公司廢棄物（含有害廢棄物）處理情形為何？',
+    plainExplanation: '這題在看廢棄物是否有委外處理、是否確認合法業者，以及是否保留完整紀錄。',
+    riskType: '法規合規、執行紀錄、佐證文件',
+    nodes: [
+      createNode('E4-1', null, 0, '有委託業者處理', 30, false),
+      createNode('E4-1-1', 'E4-1', 1, '已確認為合法清除處理業者', 60, false),
+      createNode('E4-1-1-1', 'E4-1-1', 2, '保有完整處理紀錄可提供', 100, true),
+      createNode('E4-2', null, 0, '未委外或不確定是否合法', 0, true),
+      createNode('E4-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "不清楚",
-    calculateScore: ({ safeChecked, violationSub, isNone }) => {
-      if (safeChecked) return 100;                      //[cite: 1]
-      if (violationSub === 'improved') return 60;       //[cite: 1]
-      if (violationSub === 'not-improved') return 0;    //[cite: 1]
-      if (isNone) return 30;                            //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 11, type: "sequential", prefix: "S6",
-    title: "貴公司對員工組織工會或集體談判權利，實際做法為何？",
-    steps: [
-      { level: 1, label: "允許員工自由籌組工會" },
-      { level: 2, label: "保障權利且無任何限制" }
+  }),
+  createTreeQuestion({
+    order: 11,
+    code: 'E7',
+    axisIndex: 2,
+    weight: 1,
+    title: '貴公司是否已辨識營運面臨的氣候風險（實體風險與轉型風險）？',
+    plainExplanation: '這題在看公司是否已意識到氣候風險，並把風險辨識納入營運或投資決策。',
+    riskType: '制度文件、數據揭露、執行紀錄',
+    nodes: [
+      createNode('E7-1', null, 0, '已知需要進行，尚未著手', 30, false),
+      createNode('E7-1-1', 'E7-1', 1, '已完成初步風險辨識', 60, false),
+      createNode('E7-1-1-1', 'E7-1-1', 2, '已納入營運或投資決策流程', 100, true),
+      createNode('E7-2', null, 0, '尚未考慮', 0, true),
+      createNode('E7-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "有限制員工組工會 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 2) return 100;     //[cite: 1]
-      if (seqLevel === 1) return 60;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 12, type: "parallel", prefix: "S7",
-    title: "貴公司員工申訴管道與滿意度調查，實際運作情形為何？",
-    check1Label: "設有員工申訴管道", check2Label: "有定期執行滿意度調查",
-    noneLabel: "兩者皆無 / 不清楚",
-    calculateScore: ({ check1, check2, isNone }) => {
-      if (check1 && check2) return 100;     //[cite: 1]
-      if (check1 || check2) return 60;      //[cite: 1]
-      if (isNone) return 30;                //[cite: 1]
-      return 0;
-    }
-  },
-
-  // --- E: 資源與環境管理 ---
-  {
-    id: 13, type: "sequential", prefix: "E1",
-    title: "貴公司最近一次完整年度用電量統計是什麼時候？",
-    steps: [
-      { level: 1, label: "內部有統計用電量" },
-      { level: 2, label: "資料為最近一年度且完整可提供" }
+  }),
+  createTreeQuestion({
+    order: 12,
+    code: 'E1',
+    axisIndex: 3,
+    weight: 1.5,
+    title: '貴公司能資源使用數據（電、水、燃料）的統計情形為何？',
+    plainExplanation: '這題在看公司是否已經建立能資源數據統計，而且資料是否完整、可供查驗。',
+    riskType: '數據揭露、佐證文件、執行紀錄',
+    nodes: [
+      createNode('E1-1', null, 0, '內部有統計，但資料不完整或超過一年', 40, false),
+      createNode('E1-1-1', 'E1-1', 1, '最近一完整年度資料已統計完成', 70, false),
+      createNode('E1-1-1-1', 'E1-1-1', 2, '資料完整且可即時提供給客戶或查證單位', 100, true),
+      createNode('E1-2', null, 0, '尚未系統化統計', 0, true),
+      createNode('E1-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "尚未系統化統計 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 2) return 100;     //[cite: 1]
-      if (seqLevel === 1) return 60;      //[cite: 1]
-      if (isNone) return 30;              //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 14, type: "sequential", prefix: "E2",
-    title: "貴公司目前再生能源使用情形為何？",
-    steps: [
-      { level: 1, label: "已開始規劃或評估" },
-      { level: 2, label: "已實際使用再生能源 (購買或自發電)" },
-      { level: 3, label: "持續追蹤使用比例" }
+  }),
+  createTreeQuestion({
+    order: 13,
+    code: 'E6',
+    axisIndex: 3,
+    weight: 1.5,
+    title: '貴公司溫室氣體（GHG）盤查進度為何？',
+    plainExplanation: '這題在看公司對溫室氣體盤查的準備程度，從規劃中、內部盤查到第三方查證。',
+    riskType: '數據揭露、佐證文件、執行紀錄',
+    nodes: [
+      createNode('E6-1', null, 0, '盤查規劃中或評估中', 30, false),
+      createNode('E6-1-1', 'E6-1', 1, '已完成內部盤查', 60, false),
+      createNode('E6-1-1-1', 'E6-1-1', 2, '已通過第三方查證（含 ISO 14064-1）', 100, true),
+      createNode('E6-2', null, 0, '尚未盤查', 0, true),
+      createNode('E6-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "尚未考慮 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 3) return 100;     //[cite: 1]
-      if (seqLevel === 2) return 60;      //[cite: 1]
-      if (seqLevel === 1) return 30;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 15, type: "sequential", prefix: "E3",
-    title: "貴公司最近一次完整年度用水量統計是什麼時候？",
-    steps: [
-      { level: 1, label: "內部有統計用水量" },
-      { level: 2, label: "資料為最近一年度且完整可提供" }
+  }),
+  createTreeQuestion({
+    order: 14,
+    code: 'Q19',
+    axisIndex: 3,
+    weight: 1,
+    title: '貴公司是否使用數位工具或 AI 輔助 ESG 資料蒐集與管理？',
+    plainExplanation: '這題在看公司是否已把 ESG 資料管理系統化，並開始用數位工具或 AI 提升管理效率。',
+    riskType: '數據揭露、制度文件、執行紀錄',
+    nodes: [
+      createNode('Q19-1', null, 0, '已開始規劃或評估', 30, false),
+      createNode('Q19-1-1', 'Q19-1', 1, '曾導入系統', 60, false),
+      createNode('Q19-1-1-1', 'Q19-1-1', 2, '已正式使用系統化工具管理', 100, true),
+      createNode('Q19-2', null, 0, '尚未規劃', 0, true),
+      createNode('Q19-3', null, 0, '不清楚', 0, true),
     ],
-    noneLabel: "尚未系統化統計 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 2) return 100;     //[cite: 1]
-      if (seqLevel === 1) return 60;      //[cite: 1]
-      if (isNone) return 30;              //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 16, type: "sequential", prefix: "E4",
-    title: "貴公司廢棄物處理紀錄，目前保存情形為何？",
-    steps: [
-      { level: 1, label: "有委託業者處理廢棄物" },
-      { level: 2, label: "確定為合法業者" },
-      { level: 3, label: "具備完整處理紀錄可提供" }
+  }),
+  createComplianceQuestion({
+    order: 15,
+    code: 'G4',
+    title: '貴公司近三年是否曾因反競爭行為、壟斷或不公平競爭受到裁罰或訴訟？',
+    plainExplanation: '這題只是在確認公司近三年是否有相關裁罰或訴訟紀錄，不影響雷達分數。',
+    riskType: '法規合規',
+    nodes: [
+      createNode('G4-1', null, 0, '無', '綠燈', true, { lamp: '綠燈' }),
+      createNode('G4-2', null, 0, '有', '--', false),
+      createNode('G4-2-1', 'G4-2', 1, '已改善結案', '黃燈', true, { lamp: '黃燈' }),
+      createNode('G4-2-2', 'G4-2', 1, '尚未結案或改善', '紅燈', true, { lamp: '紅燈' }),
+      createNode('G4-3', null, 0, '不清楚', '灰燈', true, { lamp: '灰燈' }),
     ],
-    noneLabel: "委外未追蹤 / 不確定是否合法 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 3) return 100;     //[cite: 1]
-      if (seqLevel === 2) return 60;      //[cite: 1]
-      if (seqLevel === 1) return 30;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 17, type: "violation", prefix: "E5",
-    title: "貴公司近三年是否曾違反環境相關法規 (水污染、空污等)？",
-    safeLabel: "無違反紀錄", violationLabel: "曾違反環境相關法規",
-    subOptions: [
-      { value: 'improved', label: '已改善結案' },
-      { value: 'not-improved', label: '尚未結案或改善' }
+  }),
+  createComplianceQuestion({
+    order: 16,
+    code: 'S1',
+    title: '貴公司近三年是否曾違反《勞動基準法》且遭裁罰？',
+    plainExplanation: '這題只是在確認勞基法裁罰紀錄，不影響雷達分數。',
+    riskType: '法規合規',
+    nodes: [
+      createNode('S1-1', null, 0, '無', '綠燈', true, { lamp: '綠燈' }),
+      createNode('S1-2', null, 0, '有', '--', false),
+      createNode('S1-2-1', 'S1-2', 1, '已提出改善計畫', '黃燈', true, { lamp: '黃燈' }),
+      createNode('S1-2-2', 'S1-2', 1, '未提出改善計畫', '紅燈', true, { lamp: '紅燈' }),
+      createNode('S1-3', null, 0, '不清楚', '灰燈', true, { lamp: '灰燈' }),
     ],
-    noneLabel: "不清楚",
-    calculateScore: ({ safeChecked, violationSub, isNone }) => {
-      if (safeChecked) return 100;                      //[cite: 1]
-      if (violationSub === 'improved') return 60;       //[cite: 1]
-      if (violationSub === 'not-improved') return 0;    //[cite: 1]
-      if (isNone) return 30;                            //[cite: 1]
-      return 0;
-    }
-  },
-  {
-    id: 18, type: "sequential", prefix: "E6",
-    title: "貴公司溫室氣體 (GHG) 盤查目前進度為何？",
-    steps: [
-      { level: 1, label: "盤查規劃中" },
-      { level: 2, label: "已完成內部盤查" },
-      { level: 3, label: "已通過第三方查證 (含 ISO 14064)" }
+  }),
+  createComplianceQuestion({
+    order: 17,
+    code: 'S2',
+    title: '貴公司近三年在性別平等與反歧視方面，是否曾有經證實之違法或歧視事件？',
+    plainExplanation: '這題只是在確認是否有經證實的違法或歧視事件，不影響雷達分數。',
+    riskType: '法規合規',
+    nodes: [
+      createNode('S2-1', null, 0, '無', '綠燈', true, { lamp: '綠燈' }),
+      createNode('S2-2', null, 0, '曾有事件', '--', false),
+      createNode('S2-2-1', 'S2-2', 1, '已全部改善', '黃燈', true, { lamp: '黃燈' }),
+      createNode('S2-2-2', 'S2-2', 1, '尚未完成改善', '紅燈', true, { lamp: '紅燈' }),
+      createNode('S2-3', null, 0, '不清楚', '灰燈', true, { lamp: '灰燈' }),
     ],
-    noneLabel: "尚未盤查 / 不清楚",
-    calculateScore: ({ seqLevel, isNone }) => {
-      if (seqLevel === 3) return 100;     //[cite: 1]
-      if (seqLevel === 2) return 60;      //[cite: 1]
-      if (seqLevel === 1) return 30;      //[cite: 1]
-      if (isNone) return 0;               //[cite: 1]
-      return 0;
-    }
-  },
-
-  // --- 第 19 題: 不計分題 ---
-  {
-    id: 19, type: "sequential", prefix: "Q19",
-    title: "貴公司目前是否使用數位化工具或 AI 技術輔助 ESG 管理？",
-    steps: [
-      { level: 1, label: "已開始規劃或評估" },
-      { level: 2, label: "曾導入系統" },
-      { level: 3, label: "已經正式使用" }
+  }),
+  createComplianceQuestion({
+    order: 18,
+    code: 'S5',
+    title: '貴公司去年度是否曾因強迫勞動、工時或薪資等勞動法規違反而受主管機關裁罰？',
+    plainExplanation: '這題只是在確認去年度是否有勞動法規裁罰紀錄，不影響雷達分數。',
+    riskType: '法規合規',
+    nodes: [
+      createNode('S5-1', null, 0, '無', '綠燈', true, { lamp: '綠燈' }),
+      createNode('S5-2', null, 0, '有', '--', false),
+      createNode('S5-2-1', 'S5-2', 1, '已提出改善計畫', '黃燈', true, { lamp: '黃燈' }),
+      createNode('S5-2-2', 'S5-2', 1, '未提出改善計畫', '紅燈', true, { lamp: '紅燈' }),
+      createNode('S5-3', null, 0, '不清楚', '灰燈', true, { lamp: '灰燈' }),
     ],
-    noneLabel: "尚未規劃 / 不清楚",
-    calculateScore: () => 0 // 此題不計分[cite: 1]
-  }
+  }),
+  createComplianceQuestion({
+    order: 19,
+    code: 'E5',
+    title: '貴公司近三年是否曾違反環境相關法規（水污染、空污、廢棄物、土壤地下水、噪音、毒化物管理等）？',
+    plainExplanation: '這題只是在確認環境法規裁罰紀錄，不影響雷達分數。',
+    riskType: '法規合規',
+    nodes: [
+      createNode('E5-1', null, 0, '無', '綠燈', true, { lamp: '綠燈' }),
+      createNode('E5-2', null, 0, '有', '--', false),
+      createNode('E5-2-1', 'E5-2', 1, '已改善結案', '黃燈', true, { lamp: '黃燈' }),
+      createNode('E5-2-2', 'E5-2', 1, '尚未結案或改善', '紅燈', true, { lamp: '紅燈' }),
+      createNode('E5-3', null, 0, '不清楚', '灰燈', true, { lamp: '灰燈' }),
+    ],
+  }),
+  createSignalQuestion({
+    order: 20,
+    code: 'B1',
+    title: '貴公司近一年是否曾收到外部單位要求提供 ESG 或碳排相關資料？',
+    plainExplanation: '這題屬於內部商機判讀用途，用來判斷外部客戶或單位是否開始要求 ESG 相關資料。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B1-1', null, 0, '是', 0, false),
+      createNode('B1-1-1', 'B1-1', 1, '來自品牌客戶或下游客戶', 3, true),
+      createNode('B1-1-2', 'B1-1', 1, '來自往來銀行或金融機構', 3, true),
+      createNode('B1-1-3', 'B1-1', 1, '來自主管機關或公協會', 2, true),
+      createNode('B1-2', null, 0, '尚未收到', 0, true),
+    ],
+    multiSelectLimit: 3,
+  }),
+  createSignalQuestion({
+    order: 21,
+    code: 'B2',
+    title: '貴公司主要客戶是否包含上市櫃公司、外商或國際品牌？',
+    plainExplanation: '這題屬於內部商機判讀用途，用來理解客戶組成是否可能帶來 ESG 要求。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B2-1', null, 0, '是', 0, false),
+      createNode('B2-1-1', 'B2-1', 1, '占營收比重過半', 3, true),
+      createNode('B2-1-2', 'B2-1', 1, '占比未過半', 2, true),
+      createNode('B2-2', null, 0, '否', 0, true),
+      createNode('B2-3', null, 0, '不清楚', 0, true),
+    ],
+    multiSelectLimit: 1,
+  }),
+  createSignalQuestion({
+    order: 22,
+    code: 'B3',
+    title: '未來一年貴公司最想優先處理的 ESG 議題？（至多選兩項）',
+    plainExplanation: '這題屬於內部商機判讀用途，用來了解公司最想先做的 ESG 工作方向。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B3-1', null, 0, '溫室氣體盤查與查證', 2, true),
+      createNode('B3-2', null, 0, '永續報告書撰寫', 2, true),
+      createNode('B3-3', null, 0, '回應客戶供應鏈問卷', 2, true),
+      createNode('B3-4', null, 0, 'ESG 策略與目標設定', 2, true),
+      createNode('B3-5', null, 0, '數位工具或系統導入', 2, true),
+      createNode('B3-6', null, 0, '尚未確定', 0, true),
+    ],
+    multiSelectLimit: 2,
+  }),
+  createSignalQuestion({
+    order: 23,
+    code: 'B4',
+    title: '貴公司推動 ESG 目前最大的困難為何？',
+    plainExplanation: '這題屬於內部商機判讀用途，用來判斷公司目前推動 ESG 的阻礙。',
+    riskType: '商機訊號、內部判讀',
+    nodes: [
+      createNode('B4-1', null, 0, '已有規劃，尚待執行資源到位', 3, true),
+      createNode('B4-2', null, 0, '缺乏內部人力', 2, true),
+      createNode('B4-3', null, 0, '不知從何開始', 1, true),
+      createNode('B4-4', null, 0, '尚無預算', 0, true),
+    ],
+    multiSelectLimit: 1,
+  }),
 ];
+
+export const visibleQuestionBank = questionBank.filter((question) => question.visible !== false);
+
+export const questionMapByCode = new Map(questionBank.map((question) => [question.code, question]));

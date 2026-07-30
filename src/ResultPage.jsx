@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Chart as ChartJS,
   RadialLinearScale,
@@ -9,60 +9,53 @@ import {
   Legend,
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
-import { AXIS_NAMES, normalizeAxisScores } from './esgScoring';
+import { AXIS_GUIDANCE, AXIS_NAMES, getAxisGuide, getAxisLevel, normalizeAxisScores } from './esgScoring';
 
-// 註冊 Chart.js 元件
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const ResultPage = ({ axisScores }) => {
-  const axisNames = AXIS_NAMES;
-  const scores = normalizeAxisScores(axisScores);
+const levelToneClass = {
+  起步: 'bg-slate-100 text-slate-700 border-slate-200',
+  建置中: 'bg-amber-50 text-amber-700 border-amber-200',
+  已成形: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  成熟: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+};
 
-  // 2. 計算總分與找出最低分面向
-  const totalScore = Math.round(scores.reduce((a, b) => a + b, 0) / 6);
-  const minScore = Math.min(...scores);
-  
-  // 找出最低分的面向名稱 (最多取2個)
-  const lowestAxes = scores
-    .map((score, index) => score === minScore ? axisNames[index] : null)
-    .filter(name => name !== null)
-    .slice(0, 2)
-    .join("」與「");
+const lampToneClass = {
+  綠燈: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  黃燈: 'bg-amber-50 text-amber-700 border-amber-200',
+  紅燈: 'bg-rose-50 text-rose-700 border-rose-200',
+  灰燈: 'bg-slate-100 text-slate-700 border-slate-200',
+};
 
-  // 3. 判斷風險等級與差異分析文字 (依據規格書)
-  let riskLabel = "";
-  let riskColor = "";
-  let suggestionText = "";
+const ResultPage = ({ surveyResult, leadData }) => {
+  const axisScores = normalizeAxisScores(surveyResult?.axisScores);
+  const axisLevels = Array.isArray(surveyResult?.axisLevels) && surveyResult.axisLevels.length === AXIS_NAMES.length
+    ? surveyResult.axisLevels
+    : axisScores.map((score) => getAxisLevel(score));
+  const complianceResults = Array.isArray(surveyResult?.complianceResults) ? surveyResult.complianceResults : [];
 
-  if (totalScore >= 80) {
-    riskLabel = "低風險";
-    riskColor = "text-green-600 bg-green-50 border-green-200";
-    // 六面向平均皆 >= 80，不特別點名最低分面向
-    const displayAxis = minScore >= 80 ? "各面向" : `「${lowestAxes}」`;
-    suggestionText = `貴公司於${displayAxis}表現已達一定基礎，建議持續維持現有管理機制，並可進一步了解完整版ESG管理平台，強化制度化與可查核性。`;
-  } else if (totalScore >= 60) {
-    riskLabel = "中風險";
-    riskColor = "text-yellow-600 bg-yellow-50 border-yellow-200";
-    suggestionText = `貴公司於「${lowestAxes}」仍有補強空間，建議優先建立或完善相關制度與資料紀錄；完整版平台可提供逐題差距分析與改善建議清單。`;
-  } else {
-    riskLabel = "高風險";
-    riskColor = "text-red-600 bg-red-50 border-red-200";
-    suggestionText = `貴公司於「${lowestAxes}」存在明顯落差，建議儘速規劃改善措施；完整版平台可提供分項風險判定、佐證文件追蹤與改善優先順序建議。`;
-  }
+  const lowestAxisIndex = useMemo(() => {
+    if (axisScores.length === 0) return 0;
+    return axisScores.reduce((lowestIndex, score, index, array) => {
+      return score < array[lowestIndex] ? index : lowestIndex;
+    }, 0);
+  }, [axisScores]);
 
-  // 4. 雷達圖設定
+  const lowestAxisName = AXIS_NAMES[lowestAxisIndex];
+  const lowestAxisGuide = getAxisGuide(lowestAxisIndex, axisScores[lowestAxisIndex]);
+
   const data = {
-    labels: axisNames,
+    labels: AXIS_NAMES,
     datasets: [
       {
-        label: '企業 ESG 成熟度',
-        data: scores,
-        backgroundColor: 'rgba(0, 188, 212, 0.3)', // 青藍色帶透明度
-        borderColor: 'rgba(0, 188, 212, 0.8)',
-        pointBackgroundColor: 'rgba(255, 235, 59, 1)', // 黃色節點
+        label: '企業成熟度',
+        data: axisScores,
+        backgroundColor: 'rgba(15, 23, 42, 0.16)',
+        borderColor: 'rgba(15, 23, 42, 0.78)',
+        pointBackgroundColor: 'rgba(15, 23, 42, 1)',
         pointBorderColor: '#fff',
         pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(0, 188, 212, 1)',
+        pointHoverBorderColor: 'rgba(15, 23, 42, 1)',
         borderWidth: 2,
       },
     ],
@@ -74,63 +67,135 @@ const ResultPage = ({ axisScores }) => {
         min: 0,
         max: 100,
         beginAtZero: true,
-        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
-        grid: { color: 'rgba(0, 0, 0, 0.1)' },
-        pointLabels: {
-          font: { size: 12, family: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif" },
-          color: '#475569'
-        },
         ticks: {
-          stepSize: 20,
-          display: false // 隱藏軸線上的數字，保持畫面乾淨
-        }
-      }
+          stepSize: 25,
+          display: false,
+        },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.28)',
+        },
+        angleLines: {
+          color: 'rgba(148, 163, 184, 0.28)',
+        },
+        pointLabels: {
+          color: '#334155',
+          font: {
+            size: 12,
+            weight: '600',
+          },
+        },
+      },
     },
     plugins: {
-      legend: { display: false }
+      legend: { display: false },
+      tooltip: { enabled: false },
     },
     maintainAspectRatio: false,
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 animate-fade-in-down">
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 sm:px-8 py-8 sm:py-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-6">永續健檢初步結果</h2>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-            <div className="text-center">
-              <span className="text-slate-300 text-sm block mb-1">整體總分</span>
-              <span className="text-5xl sm:text-6xl font-black text-white">{totalScore}</span>
-            </div>
-            <div className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-full border-2 font-bold text-base sm:text-lg ${riskColor}`}>
-              {riskLabel}
-            </div>
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 animate-fade-in-down">
+      <div className="overflow-hidden rounded-3xl bg-white shadow-lg">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 px-6 py-8 sm:px-10 sm:py-10">
+          <div className="text-center">
+            {/* <p className="mb-2 text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">
+              永續健檢結果
+            </p> */}
+            <h2 className="text-2xl font-bold text-white sm:text-4xl">
+              {leadData?.companyName ? `${leadData.companyName} 的` : ''}永續健檢結果
+            </h2>
+            {/* <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
+              這份結果只顯示四軸成熟度、合規燈號與建議下一步，不顯示總分與百分比。
+            </p> */}
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
-          {/* 雷達圖區塊 */}
-          <div className="relative w-full" style={{ height: '300px', minHeight: '280px' }}>
-            <div className="absolute inset-0">
-              <Radar data={data} options={options} />
+        <div className="space-y-8 p-6 sm:p-8">
+          <div className="grid gap-6">
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  {/* <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">四軸雷達圖</p> */}
+                  {/* <p className="text-sm text-slate-600">依等級位置繪製，僅保留四段刻度。</p> */}
+                </div>
+                {/* <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 sm:block">
+                  起步 / 建置中 / 已成形 / 成熟
+                </div> */}
+              </div>
+              <div className="relative h-[100px] w-full sm:h-[360px]">
+                <Radar data={data} options={options} />
+              </div>
+            </div>
+{/* 
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">關鍵缺口</p>
+              <h3 className="mt-2 text-xl font-bold text-slate-900">{lowestAxisName}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-700">{lowestAxisGuide}</p>
+              <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">目前等級</p>
+                <p className={`mt-2 inline-flex rounded-full border px-4 py-2 text-sm font-bold ${levelToneClass[axisLevels[lowestAxisIndex]] || levelToneClass.起步}`}>
+                  {axisLevels[lowestAxisIndex]}
+                </p>
+              </div>
+            </div> */}
+          </div>
+
+          <div>
+            {/* <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 sm:text-xl">詳細說明</h3>
+                <p className="text-sm text-slate-500">每軸顯示等級與下一步建議。</p>
+              </div>
+            </div> */}
+            <div className="md:grid-cols-2 grid gap-4">
+              {AXIS_GUIDANCE.map((axisProfile, index) => (
+                <div key={axisProfile.name} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      {/* <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">軸 {index + 1}</p> */}
+                      <h4 className="mt-1 text-lg font-bold text-slate-900">{axisProfile.name}</h4>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-sm font-bold ${levelToneClass[axisLevels[index]] || levelToneClass.起步}`}>
+                      {axisLevels[index]}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-700">
+                    {getAxisGuide(index, axisScores[index])}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* 差異分析建議區塊 */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-5 sm:p-6 rounded-lg border border-slate-200">
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-3 flex items-start gap-2">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 mt-0.5 text-slate-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span>差異分析與建議</span>
-            </h3>
-            <p className="text-slate-700 leading-relaxed text-sm sm:text-base">
-              {suggestionText}
-            </p>
+           <hr className="my-3 border-slate-200" />
+
+          <div>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 sm:text-xl">合規燈號</h3>
+                {/* <p className="text-sm text-slate-500">獨立顯示五題燈號，不納入雷達圖。</p> */}
+              </div>
+            </div>
+            {/* 更改：將 md:grid-cols-2 移除，改為單欄垂直堆疊 (grid gap-4)，讓每張合規燈號卡片各自佔據一橫列 */}
+            <div className="grid gap-4">
+              {complianceResults.map((item) => (
+                <div key={item.code} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">{item.code}</p>
+                      <h4 className="mt-1 text-base font-bold text-slate-900">{item.title}</h4>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-sm font-bold ${lampToneClass[item.lamp] || lampToneClass.灰燈}`}>
+                      {item.lamp}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-700">{item.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* CTA 按鈕 */}
-          <button className="w-full bg-gradient-to-r from-slate-800 to-slate-700 text-white font-bold py-3.5 sm:py-4 rounded-lg shadow-md hover:shadow-lg hover:from-slate-700 hover:to-slate-600 transition-all active:scale-95 touch-manipulation text-base">
+          <button className="w-full rounded-2xl bg-slate-900 py-4 text-base font-bold text-white shadow-md transition-all hover:bg-slate-800 active:scale-[0.99] touch-manipulation">
             預約完整版永續健檢
           </button>
         </div>

@@ -10,8 +10,8 @@ function App() {
   // 儲存從首頁填寫的公司資料
   const [leadData, setLeadData] = useState(null);
   
-  // 儲存最後的雷達圖分數
-  const [finalScores, setFinalScores] = useState([]);
+  // 儲存最後的問卷結果
+  const [surveyResult, setSurveyResult] = useState(null);
 
   // 首頁表單送出後觸發
   const handleStartSurvey = (formData) => {
@@ -21,9 +21,9 @@ function App() {
   };
 
   // 問卷最後一題完成後觸發
-  const handleSurveyComplete = (axisScores) => {
-    // 接收問卷組件回傳的六軸分數
-    setFinalScores(axisScores);
+  const handleSurveyComplete = (result) => {
+    // 接收問卷組件回傳的完整摘要
+    setSurveyResult(result);
     setCurrentView('result');
   };
 
@@ -32,7 +32,7 @@ function App() {
       <div className="w-full max-w-4xl">
         {currentView === 'home' && <HomePage onStartSurvey={handleStartSurvey} />}
         {currentView === 'survey' && <QuestionCard onComplete={handleSurveyComplete} />}
-        {currentView === 'result' && <ResultPage axisScores={finalScores} />}
+        {currentView === 'result' && <ResultPage surveyResult={surveyResult} leadData={leadData} />}
       </div>
     </div>
   );
