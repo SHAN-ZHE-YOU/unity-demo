@@ -59,7 +59,7 @@ const getLeafNode = (question, answer) => {
   return lastNodeId ? nodeMap.get(lastNodeId) || null : null;
 };
 
-const QuestionCard = ({ onComplete }) => {
+const QuestionCard = ({ onComplete, onProgressChange, onSaveNow, saveStatus }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -81,7 +81,7 @@ const QuestionCard = ({ onComplete }) => {
   const ENABLE_TEST_FILL = true;
 
   // 👇 1. 新增開發模式分數顯示開關（上線後改為 false）
-  const ENABLE_DEBUG_SCORE = flase; 
+  const ENABLE_DEBUG_SCORE = false; 
 
   const treeIndex = useMemo(() => buildTreeIndex(currentQuestion?.nodes || []), [currentQuestion]);
   const selectedPath = Array.isArray(currentAnswer.path) ? currentAnswer.path : [];
@@ -126,6 +126,14 @@ const QuestionCard = ({ onComplete }) => {
   useEffect(() => {
     setShowHint(false);
   }, [currentIndex]);
+
+  // 每次答案或目前題目索引變動時，把最新進度回報給父層（App）
+  // 由父層負責每分鐘自動儲存 / 手動儲存到 GAS 後端
+  useEffect(() => {
+    if (typeof onProgressChange === 'function') {
+      onProgressChange(currentIndex, answersByCode);
+    }
+  }, [currentIndex, answersByCode, onProgressChange]);
 
   useEffect(() => {
     const activeButton = document.querySelector(`[data-question-nav="${currentIndex}"]`);
@@ -197,12 +205,14 @@ const QuestionCard = ({ onComplete }) => {
 
       updateAnswer(currentQuestion.code, {
         path: buildPathToNode(node, treeIndex.nodeMap), 
-        selectedIds: nextSelectedIds                    
+        selectedIds: nextSelectedIds,                    
+				isRandom: false // 新增：手動修改後拔除隨機標籤
       });
     } else {
       // --- 原本單選邏輯 ---
       updateAnswer(currentQuestion.code, {
         path: buildPathToNode(node, treeIndex.nodeMap),
+				isRandom: false // 新增：手動修改後拔除隨機標籤
       });
     }
   };
@@ -325,12 +335,26 @@ const QuestionCard = ({ onComplete }) => {
 		return { path: selectedPath };
 	};
 
-  const randomFillCurrent = () => {
+	const randomFillCurrent = () => {
     if (!ENABLE_TEST_FILL) return;
 
     const nextAnswers = { ...answersByCode };
     visibleQuestionBank.forEach((question) => {
-      nextAnswers[question.code] = buildRandomVisibleAnswer(question);
+      const currentAns = nextAnswers[question.code];
+      
+      // 檢查是否已經有手動填答的紀錄
+      const alreadyAnswered = question.kind === 'signal'
+        ? Array.isArray(currentAns?.selectedIds) && currentAns.selectedIds.length > 0
+        : Array.isArray(currentAns?.path) && currentAns.path.length > 0;
+
+      // 只有在「尚未填答」的情況下，才進行隨機填寫
+      if (!alreadyAnswered) {
+        const randomAns = buildRandomVisibleAnswer(question);
+        nextAnswers[question.code] = { 
+          ...randomAns, 
+          isRandom: true // 新增：標記此題為隨機填答
+        };
+      }
     });
     setAnswersByCode(nextAnswers);
   };
@@ -388,6 +412,13 @@ const QuestionCard = ({ onComplete }) => {
                 🔧 Debug: 本題 {currentQuestionScore} 分 | 累計 {cumulativeScore} / {maxTotalScore}
               </span>
             )}
+
+						{/* 👇 新增：如果這題是隨機填答的，就顯示提示標籤 */}
+            {currentAnswer.isRandom && (
+              <span className="rounded-md bg-purple-100 px-2 py-1 text-purple-700 border border-purple-200">
+                🤖 隨機填寫
+              </span>
+            )}
           </div>
 
           <h2 className="mb-4 text-lg font-bold leading-snug text-slate-900 sm:text-2xl">
@@ -434,6 +465,26 @@ const QuestionCard = ({ onComplete }) => {
               >
                 隨機填答全部
               </button>
+            )}
+
+            {typeof onSaveNow === 'function' && (
+              <button
+                type="button"
+                onClick={onSaveNow}
+                className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 sm:mt-0 sm:ml-3 sm:w-auto"
+              >
+                手動儲存進度
+              </button>
+            )}
+
+            {saveStatus && saveStatus !== 'idle' && (
+              <span className={`mt-3 block text-xs font-medium sm:mt-0 sm:ml-3 sm:inline-block ${
+                saveStatus === 'error' ? 'text-red-500' : saveStatus === 'saving' ? 'text-slate-400' : 'text-emerald-600'
+              }`}>
+                {saveStatus === 'saving' && '儲存中...'}
+                {saveStatus === 'saved' && '✅ 已儲存進度'}
+                {saveStatus === 'error' && '⚠️ 儲存失敗，將於下次自動重試'}
+              </span>
             )}
           </div>
         </div>
