@@ -4,7 +4,7 @@ import QuestionCard from './QuestionCard';
 import ResultPage from './ResultPage';
 
 // 👇 部署 Google Apps Script 後，把這裡換成你的 Web App URL（.../exec 結尾）
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzlSM07nBWGv-lMSP6j9CT_baBsi97oBnA-LEu6SiadXTOCL4lDwsMmxY1898lsByV0/exec';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby1d4Yi7XXXzqwrz1ChNfc9iZ3qdoI52ZMlhCf86RWjfPkIxZKpqmSyzYy8fg8f3Wu6/exec';
 
 // 自動儲存間隔：每 60 秒一次
 const AUTO_SAVE_INTERVAL_MS = 60 * 1000;
