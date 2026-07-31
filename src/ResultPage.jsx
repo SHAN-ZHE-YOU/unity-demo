@@ -65,10 +65,10 @@ const ResultPage = ({ surveyResult, leadData }) => {
     // 新增：增加圖表四周的 padding，避免手機版左右標籤被卡片切掉
     layout: {
       padding: {
-        top: 10,
-        bottom: 10,
-        left: 25,
-        right: 25,
+        top: 5,
+        bottom: 5,
+        left: 5,
+        right: 5,
       },
     },
     scales: {
@@ -107,38 +107,26 @@ const ResultPage = ({ surveyResult, leadData }) => {
       <div className="overflow-hidden rounded-3xl bg-white shadow-lg">
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 px-6 py-8 sm:px-10 sm:py-10">
           <div className="text-center">
-            {/* <p className="mb-2 text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">
+            <h1 className="text-2xl font-bold leading-snug text-white sm:text-4xl sm:leading-tight">
               永續健檢結果
-            </p> */}
-            <h2 className="text-2xl font-bold text-white sm:text-4xl">
-              {leadData?.companyName ? `${leadData.companyName} 的` : ''}永續健檢結果
-            </h2>
-            {/* <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
-              這份結果只顯示四軸成熟度、合規燈號與建議下一步，不顯示總分與百分比。
-            </p> */}
+              {leadData?.companyName && (
+                <span className="block mb-1 text-xl text-slate-300 sm:mb-2 sm:text-3xl">
+                  {leadData.companyName}
+                </span>
+              )}
+              
+            </h1>
           </div>
         </div>
 
         <div className="space-y-8 p-6 sm:p-8">
-          <div className="grid gap-6">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-              {/* <div className="relative h-[280px] w-full sm:h-[360px]"> */}
-              <div className="relative mx-auto h-[260px] w-full max-w-[280px] sm:h-[360px] sm:max-w-none">
-                <Radar data={data} options={options} />
+            <div className="grid gap-6">
+              {/* 加上 overflow-hidden，確保畫布絕對不會溢出這張灰色卡片 */}
+              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
+                <div className="relative mx-auto h-[260px] w-full max-w-[280px] sm:h-[360px] sm:max-w-none">
+                  <Radar data={data} options={options} />
+                </div>
               </div>
-            </div>
-{/* 
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase">關鍵缺口</p>
-              <h3 className="mt-2 text-xl font-bold text-slate-900">{lowestAxisName}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-700">{lowestAxisGuide}</p>
-              <div className="mt-6 rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">目前等級</p>
-                <p className={`mt-2 inline-flex rounded-full border px-4 py-2 text-sm font-bold ${levelToneClass[axisLevels[lowestAxisIndex]] || levelToneClass.起步}`}>
-                  {axisLevels[lowestAxisIndex]}
-                </p>
-              </div>
-            </div> */}
           </div>
 
           <div>
