@@ -445,13 +445,13 @@ const QuestionCard = ({ onComplete, onSaveNow }) => {
             {currentQuestion.title}
           </h2>
 
-          <button
+          {/* <button
             type="button"
             onClick={() => setShowHint((previous) => !previous)}
             className="mb-5 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-100"
           >
             這題在問什麼
-          </button>
+          </button> */}
 
           {showHint && (
             <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">

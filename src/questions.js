@@ -76,7 +76,7 @@ export const questionBank = [
     order: 1,
     code: 'B1',
     title: '貴公司近一年是否曾收到外部單位要求提供 ESG 或碳排相關資料？',
-    plainExplanation: '這題屬於內部商機判讀用途，用來判斷外部客戶或單位是否開始要求 ESG 相關資料。',
+    plainExplanation: '這題想了解外部客戶或單位是否開始要求 ESG 相關資料。',
     riskType: '商機訊號、內部判讀',
     nodes: [
       createNode('B1-1', null, 0, '是', 0, false),
