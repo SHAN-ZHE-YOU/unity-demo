@@ -6,6 +6,13 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        unity: {
+          cyan: '#13c1db',    // 活力青藍
+          green: '#81cf9f',   // 永續淺綠
+          yellow: '#fdde59',  // 溫暖亮黃
+        }
+      },
       animation: {
         shake: 'shake 0.3s cubic-bezier(.36,.07,.19,.97) both',
       },

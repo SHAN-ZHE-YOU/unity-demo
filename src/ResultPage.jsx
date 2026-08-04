@@ -114,7 +114,7 @@ const ResultPage = ({ surveyResult, leadData }) => {
           <hr className="my-3 border-slate-200" />
 
           {/* 合規燈號 */}
-          <div>
+          {/* <div>
             <div className="mb-4">
               <h3 className="text-lg font-bold text-slate-900 sm:text-xl">合規狀態掃描</h3>
             </div>
@@ -131,9 +131,9 @@ const ResultPage = ({ surveyResult, leadData }) => {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
 
-          {/* 🌟 顧問專屬建議 (淺色明亮版) */}
+          {/* 🌟 顧問建議 (淺色明亮版) */}
           {recommendations.length > 0 && (
             <>
               <hr className="my-6 border-slate-200" />
@@ -141,7 +141,7 @@ const ResultPage = ({ surveyResult, leadData }) => {
                 <div className="mb-5">
                   <h3 className="text-xl font-bold text-slate-900 sm:text-2xl flex items-center gap-2">
                     <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    顧問專屬建議
+                    顧問建議
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">基於您的現況評估，我們建議您可以優先採取的兩項行動：</p>
                 </div>
